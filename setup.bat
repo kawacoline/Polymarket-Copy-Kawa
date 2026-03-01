@@ -15,22 +15,20 @@ if !errorlevel! neq 0 (
     exit /b 1
 )
 
-:: Check if Git is installed
+:: Check if Git is installed (Optional but recommended for the very first clone)
 git --version >nul 2>&1
 if !errorlevel! neq 0 (
-    echo [ERROR] Git is not installed or not in PATH.
-    echo Please install Git for Windows from git-scm.com.
-    pause
-    exit /b 1
+    echo [WARNING] Git is not installed. 
+    echo If you downloaded this as a ZIP instead of cloning, that's completely fine!
+    echo The new updater.py handles updates without Git.
 )
 
-:: Clone the repo if we aren't already in it
+:: Note: setup.bat assumes you already downloaded/cloned the repo and are inside it.
 if not exist "continuous_bot.py" (
-    echo [1/4] Cloning repository...
-    git clone https://github.com/kawacoline/Polymarket-Copy-Kawa.git
-    cd Polymarket-Copy-Kawa
-) else (
-    echo [1/4] Repository already present.
+    echo [ERROR] continuous_bot.py not found.
+    echo Please run this script from inside the Polymarket-Copy-Kawa folder!
+    pause
+    exit /b 1
 )
 
 :: Create Virtual Environment
