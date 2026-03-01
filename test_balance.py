@@ -125,8 +125,8 @@ print("\nTest 4: Checking blockchain directly (most reliable)...")
 try:
     from web3 import Web3
     
-    # Connect to Polygon RPC (using LlamaNodes for reliable public access)
-    w3 = Web3(Web3.HTTPProvider('https://polygon.llamarpc.com'))
+    # Connect to Polygon RPC (using dRPC for reliable public access)
+    w3 = Web3(Web3.HTTPProvider('https://polygon.drpc.org'))
     
     if not w3.is_connected():
         print("  ✗ Failed to connect to Polygon RPC")
