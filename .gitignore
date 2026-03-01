@@ -1,0 +1,34 @@
+# Environment variables (NEVER commit secrets)
+.env
+
+# Database files
+*.db
+
+# Runtime state files
+bot_status.json
+seen_trades.json
+accounts.json
+withdrawals.json
+
+# Backups
+*_backup_*.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+venv/
+.venv/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo

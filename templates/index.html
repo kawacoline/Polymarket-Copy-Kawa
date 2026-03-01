@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Polymarket Multi-Account Copy Trading Bot</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        h1 {
+            color: #2d3748;
+            font-size: 28px;
+            margin-bottom: 8px;
+        }
+
+        .subtitle {
+            color: #718096;
+            font-size: 14px;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-left: 12px;
+        }
+
+        .badge-success {
+            background: #c6f6d5;
+            color: #22543d;
+        }
+
+        .badge-info {
+            background: #bee3f8;
+            color: #2c5282;
+        }
+
+        .controls {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .controls-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .btn-primary {
+            background: #48bb78;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #38a169;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
+        }
+
+        .btn-danger {
+            background: #f56565;
+            color: white;
+        }
+
+        .btn-danger:hover {
+            background: #e53e3e;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(245, 101, 101, 0.4);
+        }
+
+        .btn-warning {
+            background: #ed8936;
+            color: white;
+        }
+
+        .btn-warning:hover {
+            background: #dd6b20;
+        }
+
+        .btn-secondary {
+            background: #4299e1;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #3182ce;
+        }
+
+        .btn-outline {
+            background: white;
+            color: #4299e1;
+            border: 2px solid #4299e1;
+        }
+
+        .btn-outline:hover {
+            background: #4299e1;
+            color: white;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .stat-label {
+            color: #718096;
+            font-size: 12px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            color: #2d3748;
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .stat-value.positive {
+            color: #48bb78;
+        }
+
+        .stat-value.negative {
+            color: #f56565;
+        }
+
+        .positions-section {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .section-title {
+            font-size: 20px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 20px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #e2e8f0;
+        }
+
+        .position-card, .account-card {
+            background: #f7fafc;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            border: 1px solid #e2e8f0;
+            transition: all 0.2s;
+        }
+
+        .position-card:hover, .account-card:hover {
+            border-color: #cbd5e0;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        .account-card.disabled {
+            opacity: 0.6;
+            background: #edf2f7;
+        }
+
+        .position-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: start;
+            margin-bottom: 12px;
+        }
+
+        .position-title {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 15px;
+            flex: 1;
+        }
+
+        .position-pnl {
+            font-weight: 700;
+            font-size: 16px;
+            margin-left: 12px;
+        }
+
+        .position-details {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 12px;
+            font-size: 13px;
+        }
+
+        .detail-item {
+            color: #4a5568;
+        }
+
+        .detail-label {
+            color: #718096;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .position-actions {
+            display: flex;
+            gap: 8px;
+            margin-top: 12px;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 12px;
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 8px;
+        }
+
+        .status-indicator.running {
+            background: #48bb78;
+            box-shadow: 0 0 8px rgba(72, 187, 120, 0.6);
+        }
+
+        .status-indicator.stopped {
+            background: #f56565;
+        }
+
+        .status-message {
+            background: #edf2f7;
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-top: 12px;
+            font-size: 13px;
+            color: #4a5568;
+        }
+
+        /* Modal styles */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.5);
+            animation: fadeIn 0.2s;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .modal-content {
+            background: white;
+            margin: 100px auto;
+            padding: 32px;
+            border-radius: 12px;
+            max-width: 500px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            animation: slideDown 0.3s;
+        }
+
+        @keyframes slideDown {
+            from {
+                transform: translateY(-50px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .modal-title {
+            font-size: 24px;
+            font-weight: 700;
+            color: #2d3748;
+            margin-bottom: 24px;
+        }
+
+        .modal-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+            margin-top: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-weight: 600;
+            color: #4a5568;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: #4299e1;
+        }
+
+        .toggle-switch {
+            position: relative;
+            display: inline-block;
+            width: 50px;
+            height: 24px;
+        }
+
+        .toggle-switch input {
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #cbd5e0;
+            transition: 0.3s;
+            border-radius: 24px;
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 3px;
+            bottom: 3px;
+            background-color: white;
+            transition: 0.3s;
+            border-radius: 50%;
+        }
+
+        input:checked + .slider {
+            background-color: #48bb78;
+        }
+
+        input:checked + .slider:before {
+            transform: translateX(26px);
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 48px 24px;
+            color: #a0aec0;
+        }
+
+        .empty-state-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 24px;
+            color: #718096;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .spinner {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #e2e8f0;
+            border-top-color: #4299e1;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        .export-section {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .account-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .account-info {
+            flex: 1;
+        }
+
+        .account-name {
+            font-weight: 600;
+            color: #2d3748;
+            font-size: 15px;
+        }
+
+        .account-address {
+            font-size: 12px;
+            color: #718096;
+            font-family: monospace;
+            margin-top: 4px;
+        }
+
+        .account-stats {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 12px;
+            margin: 12px 0;
+            font-size: 13px;
+        }
+
+        .account-actions {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <div class="header">
+            <h1>🤖 Polymarket Multi-Account Copy Trading Bot</h1>
+            <p class="subtitle">
+                Monitor and copy trades from multiple accounts automatically
+                <span id="accountsBadge" class="badge badge-info">0 Accounts Tracked</span>
+            </p>
+        </div>
+
+        <!-- Controls -->
+        <div class="controls">
+            <div class="controls-grid">
+                <button id="startBtn" class="btn btn-primary" onclick="startBot()">
+                    ▶ Start Bot
+                </button>
+                <button id="stopBtn" class="btn btn-danger" onclick="stopBot()" disabled>
+                    ⏸ Stop Bot
+                </button>
+                <button id="panicSellBtn" class="btn btn-warning" onclick="showPanicSellModal()">
+                    🚨 Panic Sell All
+                </button>
+                <button class="btn btn-secondary" onclick="refreshAll()">
+                    🔄 Refresh
+                </button>
+            </div>
+            
+            <div class="status-message" style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between;">
+                <div>
+                    <span id="statusIndicator" class="status-indicator stopped"></span>
+                    <span id="statusText">Bot Stopped</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span style="font-size: 13px; font-weight: 600;">Dry Run Mode:</span>
+                    <label class="toggle-switch">
+                        <input type="checkbox" id="dryRunToggle" onchange="toggleDryRun()" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Portfolio Stats -->
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-label">Available Balance (USDC)</div>
+                <div id="accountBalance" class="stat-value">$0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Open Positions</div>
+                <div class="stat-value" id="openPositions">-</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Value</div>
+                <div class="stat-value" id="totalValue">$0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Unrealized P&L</div>
+                <div class="stat-value" id="unrealizedPnl">$0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Realized P&L</div>
+                <div class="stat-value" id="realizedPnl">$0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total P&L</div>
+                <div class="stat-value" id="totalPnl">$0.00</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Total Withdrawn</div>
+                <div class="stat-value" id="totalWithdrawn">$0.00</div>
+            </div>
+        </div>
+
+        <!-- Target Accounts Management -->
+        <div class="positions-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 class="section-title" style="margin: 0; padding: 0; border: none;">Tracked Accounts</h2>
+                <button class="btn btn-primary btn-sm" onclick="showAddAccountModal()">
+                    + Add Account
+                </button>
+            </div>
+            <div id="accountsList">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 12px;">Loading accounts...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Positions -->
+        <div class="positions-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 class="section-title" style="margin: 0; padding: 0; border: none;">Active Positions</h2>
+                <div class="export-section">
+                    <button class="btn btn-outline btn-sm" onclick="exportPositions()">
+                        📊 Export Positions
+                    </button>
+                    <button class="btn btn-outline btn-sm" onclick="exportHistory()">
+                        📜 Export History
+                    </button>
+                    <button class="btn btn-outline btn-sm" onclick="exportFullReport()">
+                        📑 Full Report
+                    </button>
+                </div>
+            </div>
+            <div id="positionsList">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 12px;">Loading positions...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Withdrawals -->
+        <div class="positions-section">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h2 class="section-title" style="margin: 0; padding: 0; border: none;">Withdrawal History</h2>
+                <div style="display: flex; gap: 12px;">
+                    <button class="btn btn-secondary btn-sm" onclick="showAddWithdrawalModal()">
+                        + Add Withdrawal
+                    </button>
+                    <button class="btn btn-secondary btn-sm" onclick="showSearchWithdrawalsModal()">
+                        🔍 Search
+                    </button>
+                </div>
+            </div>
+            <div id="withdrawalsList">
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p style="margin-top: 12px;">Loading withdrawals...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Account Modal -->
+    <div id="addAccountModal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title">Add Target Account</h3>
+            <div class="form-group">
+                <label class="form-label" for="accountAddress">Wallet Address</label>
+                <input type="text" id="accountAddress" class="form-input" placeholder="0x...">
+                <div style="font-size: 12px; color: #718096; margin-top: 4px;">
+                    Enter the Ethereum address you want to copy trades from
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="accountName">Name (optional)</label>
+                <input type="text" id="accountName" class="form-input" placeholder="e.g., Trader Joe">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="accountBetAmount">Bet Amount Override (optional)</label>
+                <input type="number" id="accountBetAmount" class="form-input" step="0.01" min="0" placeholder="Leave empty to use default">
+                <div style="font-size: 12px; color: #718096; margin-top: 4px;">
+                    Set a custom bet amount for this account
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('addAccountModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="addAccount()">Add Account</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Partial Sell Modal -->
+    <div id="partialSellModal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title">Sell Position</h3>
+            <div class="form-group">
+                <label class="form-label">Position</label>
+                <div id="sellPositionTitle" style="font-weight: 600; margin-bottom: 12px;"></div>
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="sellAmount">Amount to Sell ($)</label>
+                <input type="number" id="sellAmount" class="form-input" step="0.01" min="0.01">
+                <div style="font-size: 12px; color: #718096; margin-top: 4px;">
+                    Available: <span id="sellMaxAmount"></span>
+                </div>
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('partialSellModal')">Cancel</button>
+                <button class="btn btn-danger" onclick="executeSell()">Sell</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panic Sell Confirmation Modal -->
+    <div id="panicSellModal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title">⚠️ Confirm Panic Sell</h3>
+            <p style="margin-bottom: 24px; color: #4a5568;">
+                This will immediately close ALL open positions. This action cannot be undone.
+            </p>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('panicSellModal')">Cancel</button>
+                <button class="btn btn-danger" onclick="executePanicSell()">Close All Positions</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Withdrawal Modal -->
+    <div id="addWithdrawalModal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title">Record Withdrawal</h3>
+            <div class="form-group">
+                <label class="form-label" for="withdrawalAmount">Amount ($)</label>
+                <input type="number" id="withdrawalAmount" class="form-input" step="0.01" min="0.01">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="withdrawalNote">Note (optional)</label>
+                <input type="text" id="withdrawalNote" class="form-input" placeholder="E.g., Profit withdrawal, Tax payment">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('addWithdrawalModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="addWithdrawal()">Add Withdrawal</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Search Withdrawals Modal -->
+    <div id="searchWithdrawalsModal" class="modal">
+        <div class="modal-content">
+            <h3 class="modal-title">Search Withdrawals</h3>
+            <div class="form-group">
+                <label class="form-label" for="searchStartDate">Start Date</label>
+                <input type="date" id="searchStartDate" class="form-input">
+            </div>
+            <div class="form-group">
+                <label class="form-label" for="searchEndDate">End Date</label>
+                <input type="date" id="searchEndDate" class="form-input">
+            </div>
+            <div class="modal-actions">
+                <button class="btn btn-secondary" onclick="closeModal('searchWithdrawalsModal')">Cancel</button>
+                <button class="btn btn-primary" onclick="searchWithdrawals()">Search</button>
+            </div>
+            <div id="searchResults" style="margin-top: 20px;"></div>
+        </div>
+    </div>
+
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
