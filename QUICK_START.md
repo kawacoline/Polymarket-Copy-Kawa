@@ -28,13 +28,11 @@ copy .env.example .env
 cp .env.example .env
 ```
 
-2. Edit `.env` and add your wallet details and GitHub Token:
+2. Edit `.env` and add your wallet details:
 ```env
 FUNDER_ADDRESS=0xYourWalletAddress
 PRIVATE_KEY=your_private_key
-GITHUB_TOKEN=ghp_YourGitHubTokenHere
 ```
-*(You can generate a classic Personal Access Token on GitHub under Settings -> Developer Settings -> PATs. Give it `repo` scope).*
 
 ## Step 3: Start the Web Server
 
