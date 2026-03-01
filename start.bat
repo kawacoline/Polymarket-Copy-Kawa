@@ -14,11 +14,9 @@ if not exist "venv\Scripts\activate.bat" (
     exit /b 1
 )
 
-:: Activate venv and run launcher
-echo Activating virtual environment...
-call venv\Scripts\activate.bat
-
+:: Run the launcher using the virtual environment's python directly
+:: This avoids activate.bat which hardcodes absolute paths and breaks if the folder moves
 echo Starting the auto-updater and bot...
-python launcher.py
+venv\Scripts\python.exe launcher.py
 
 pause
