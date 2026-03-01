@@ -77,25 +77,28 @@ class CopyTradingBot:
     
     def load_target_accounts(self):
         """Load target accounts from accounts.json"""
+        accounts = []
         try:
             if os.path.exists(ACCOUNTS_FILE):
                 with open(ACCOUNTS_FILE, 'r') as f:
-                    data = json.load(f)
-                    return data.get("accounts", [])
+                    content = f.read().strip()
+                    if content:
+                        data = json.loads(content)
+                        accounts = data.get("accounts", [])
         except Exception as e:
             print(f"Error loading accounts: {e}")
         
-        # Fallback: check if old TARGET_ADDRESS env exists
+        # Fallback: check if old TARGET_ADDRESS env exists and add it if not already in list
         old_target = os.getenv("TARGET_ADDRESS")
-        if old_target:
-            return [{
+        if old_target and not any(acc.get("address", "").lower() == old_target.lower() for acc in accounts):
+            accounts.append({
                 "address": old_target,
                 "name": "Default Target",
                 "enabled": True,
                 "bet_amount_override": None
-            }]
-        
-        return []
+            })
+            
+        return accounts
     
     def save_target_accounts(self):
         """Save target accounts to accounts.json"""
