@@ -197,8 +197,8 @@ def get_portfolio_stats():
                 print(f"[DEBUG] Attempting direct blockchain balance check...")
                 from web3 import Web3
                 
-                # Connect to Polygon RPC (using Ankr as it's more reliable for bots than polygon-rpc.com)
-                w3 = Web3(Web3.HTTPProvider('https://rpc.ankr.com/polygon'))
+                # Connect to Polygon RPC (using LlamaNodes for reliable public access)
+                w3 = Web3(Web3.HTTPProvider('https://polygon.llamarpc.com'))
                 
                 # USDC contract on Polygon
                 usdc_address = Web3.to_checksum_address('0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174')
