@@ -1,8 +1,18 @@
 # 🚀 Quick Start Guide - Multi-Account Copy Trading Bot
 
-## Step 1: Install Dependencies
+## Step 1: Install Dependencies (with venv)
+
+It is highly recommended to use a virtual environment:
 
 ```bash
+# Windows
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+
+# Mac/Linux
+python3 -m venv venv
+source venv/bin/activate
 pip install -r requirements.txt
 ```
 
@@ -10,6 +20,10 @@ pip install -r requirements.txt
 
 1. Copy `.env.example` to `.env`:
 ```bash
+# Windows
+copy .env.example .env
+
+# Mac/Linux
 cp .env.example .env
 ```
 
