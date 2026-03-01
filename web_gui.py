@@ -54,39 +54,58 @@ def get_clob_client():
 
 
 def get_positions():
-    """Fetch current positions from Polymarket"""
+    """Calculate current positions locally from betting_history.db"""
     try:
-        response = requests.get(
-            f"{DATA_API}/positions",
-            params={"user": FUNDER_ADDRESS, "sizeThreshold": 0},
-            timeout=10
-        )
-        response.raise_for_status()
-        positions = response.json()
+        import sqlite3
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
         
-        # Enhance positions with P&L data
+        # Group trades by token to find net position
+        cursor.execute("""
+            SELECT 
+                market_title as title,
+                outcome,
+                token_id as asset,
+                SUM(CASE WHEN side = 'BUY' THEN size ELSE -size END) as net_size,
+                SUM(CASE WHEN side = 'BUY' THEN size * price ELSE 0 END) as total_spent,
+                SUM(CASE WHEN side = 'BUY' THEN size ELSE 0 END) as total_bought
+            FROM trades
+            GROUP BY token_id, market_title, outcome
+            HAVING net_size > 0.01
+        """)
+        
+        rows = cursor.fetchall()
+        conn.close()
+        
         enhanced = []
-        for pos in positions:
-            size = float(pos.get("size", 0))
-            entry_price = float(pos.get("price", 0))
-            current_price = float(pos.get("currentPrice", entry_price))
+        for row in rows:
+            size = float(row['net_size'])
+            # Calculate average entry price
+            total_bought = float(row['total_bought'])
+            entry_price = float(row['total_spent']) / total_bought if total_bought > 0 else 0
             
-            # Calculate P&L
-            pnl = size * (current_price - entry_price)
-            pnl_percent = ((current_price - entry_price) / entry_price * 100) if entry_price > 0 else 0
+            # Since we can't fetch live price easily without SDK, mock currentPrice as entry 
+            # (or use 0% unrealized PNL temporarily)
+            current_price = entry_price
             
             enhanced.append({
-                **pos,
-                "pnl": round(pnl, 2),
-                "pnl_percent": round(pnl_percent, 2),
+                "title": row['title'],
+                "outcome": row['outcome'],
+                "asset": row['asset'],
+                "size": round(size, 2),
+                "price": round(entry_price, 4),
+                "currentPrice": round(current_price, 4),
+                "pnl": 0.0,
+                "pnl_percent": 0.0,
                 "current_value": round(size * current_price, 2),
                 "cost_basis": round(size * entry_price, 2)
             })
-        
+            
         return enhanced
-    
+        
     except Exception as e:
-        print(f"Error fetching positions: {e}")
+        print(f"Error calculating positions from DB: {e}")
         return []
 
 
@@ -134,67 +153,10 @@ def get_portfolio_stats():
         except Exception as e:
             print(f"[DEBUG] CLOB client balance fetch failed: {e}")
         
-        # Method 2: Try direct API call to gamma-api
+        # Method 2: Check blockchain directly using web3 (most reliable since REST endpoints were deprecated)
         if balance == 0:
             try:
-                print(f"[DEBUG] Attempting gamma-api balance fetch for {FUNDER_ADDRESS[:10]}...")
-                balance_resp = requests.get(
-                    f"{PROFILE_API}/balance",
-                    params={"address": FUNDER_ADDRESS},
-                    timeout=10
-                )
-                print(f"[DEBUG] Gamma API response status: {balance_resp.status_code}")
-                
-                if balance_resp.status_code == 200:
-                    data = balance_resp.json()
-                    print(f"[DEBUG] Gamma API response data: {data}")
-                    
-                    if isinstance(data, dict) and "balance" in data:
-                        balance = float(data["balance"])
-                        print(f"[DEBUG] Balance from gamma-api: {balance} USDC")
-                else:
-                    print(f"[DEBUG] Gamma API error: {balance_resp.text[:200]}")
-            except Exception as e:
-                print(f"[DEBUG] Gamma API balance fetch failed: {e}")
-        
-        # Method 3: Try CLOB API balances endpoint
-        if balance == 0:
-            try:
-                print(f"[DEBUG] Attempting CLOB API balance fetch...")
-                balance_resp = requests.get(
-                    f"{CLOB_API}/balances",
-                    params={"address": FUNDER_ADDRESS},
-                    timeout=10
-                )
-                print(f"[DEBUG] CLOB API balances response status: {balance_resp.status_code}")
-                
-                if balance_resp.status_code == 200:
-                    data = balance_resp.json()
-                    print(f"[DEBUG] CLOB API balances data: {data}")
-                    
-                    if isinstance(data, list) and len(data) > 0:
-                        # Look for USDC token
-                        for token in data:
-                            if isinstance(token, dict):
-                                bal = float(token.get("balance", 0))
-                                if bal > 0:
-                                    balance = bal / 1_000_000
-                                    print(f"[DEBUG] Balance from CLOB API: {balance} USDC")
-                                    break
-                    elif isinstance(data, dict) and "balance" in data:
-                        balance = float(data["balance"]) / 1_000_000
-                        print(f"[DEBUG] Balance from CLOB API dict: {balance} USDC")
-                else:
-                    print(f"[DEBUG] CLOB API error: {balance_resp.text[:200]}")
-            except Exception as e:
-                print(f"[DEBUG] CLOB API balance fetch failed: {e}")
-        
-        print(f"[DEBUG] Final balance value: ${balance:.2f} USDC")
-        
-        # Method 4: Check blockchain directly using web3 (most reliable)
-        if balance == 0:
-            try:
-                print(f"[DEBUG] Attempting direct blockchain balance check...")
+                # print(f"[DEBUG] Attempting direct blockchain balance check...")
                 from web3 import Web3
                 
                 # Connect to Polygon RPC (using dRPC for reliable public access)
