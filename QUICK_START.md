@@ -1,9 +1,10 @@
 # 🚀 Quick Start Guide - Multi-Account Copy Trading Bot
 
-## Step 1: Install Dependencies (with venv)
+## Step 1: Install Dependencies & Setup
 
-It is highly recommended to use a virtual environment:
+If you are on Windows, simply double-click **`setup.bat`**. This will automatically create the virtual environment, install dependencies, and create the `.env` template.
 
+*(Alternatively, or if on Mac/Linux)*
 ```bash
 # Windows
 python -m venv venv
@@ -18,7 +19,7 @@ pip install -r requirements.txt
 
 ## Step 2: Configure Your Wallet
 
-1. Copy `.env.example` to `.env`:
+1. Copy `.env.example` to `.env` (already done if you used `setup.bat`!):
 ```bash
 # Windows
 copy .env.example .env
