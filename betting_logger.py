@@ -55,6 +55,16 @@ class BettingLogger:
             cursor.execute("ALTER TABLE trades ADD COLUMN hold_duration_hours REAL")
         except sqlite3.OperationalError:
             pass  # Column already exists
+            
+        try:
+            cursor.execute("ALTER TABLE trades ADD COLUMN is_dry_run INTEGER DEFAULT 1")
+        except sqlite3.OperationalError:
+            pass
+            
+        try:
+            cursor.execute("ALTER TABLE trades ADD COLUMN copied_from TEXT")
+        except sqlite3.OperationalError:
+            pass
         
         # Daily stats table - aggregated daily performance
         cursor.execute("""

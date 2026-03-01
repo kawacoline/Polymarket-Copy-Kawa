@@ -322,6 +322,17 @@ class CopyTradingBot:
                 )
             """)
             
+            # Add new columns if they don't exist
+            try:
+                cursor.execute("ALTER TABLE trades ADD COLUMN is_dry_run INTEGER DEFAULT 1")
+            except sqlite3.OperationalError:
+                pass
+                
+            try:
+                cursor.execute("ALTER TABLE trades ADD COLUMN copied_from TEXT")
+            except sqlite3.OperationalError:
+                pass
+            
             created_date = datetime.fromtimestamp(timestamp, timezone.utc).strftime('%Y-%m-%d')
             
             cursor.execute("""
