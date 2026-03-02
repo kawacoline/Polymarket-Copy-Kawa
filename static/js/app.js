@@ -2,7 +2,7 @@
 let currentSellPosition = null;
 
 // Initialize on page load
-document.addEventListener('DOMContentLoaded', function() {
+document.addEventListener('DOMContentLoaded', function () {
     refreshAll();
     // Auto-refresh every 30 seconds
     setInterval(() => {
@@ -21,9 +21,9 @@ async function startBot() {
         const response = await fetch('/api/bot/start', {
             method: 'POST'
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             document.getElementById('startBtn').disabled = true;
             document.getElementById('stopBtn').disabled = false;
@@ -42,9 +42,9 @@ async function stopBot() {
         const response = await fetch('/api/bot/stop', {
             method: 'POST'
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             document.getElementById('startBtn').disabled = false;
             document.getElementById('stopBtn').disabled = true;
@@ -60,7 +60,7 @@ async function stopBot() {
 
 async function toggleDryRun() {
     const dryRun = document.getElementById('dryRunToggle').checked;
-    
+
     try {
         const response = await fetch('/api/bot/dry-run', {
             method: 'POST',
@@ -69,9 +69,9 @@ async function toggleDryRun() {
             },
             body: JSON.stringify({ dry_run: dryRun })
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             showNotification(dryRun ? 'Dry run mode enabled' : 'Live trading enabled', 'info');
         }
@@ -88,10 +88,10 @@ async function loadStatus() {
     try {
         const response = await fetch('/api/status');
         const status = await response.json();
-        
+
         const indicator = document.getElementById('statusIndicator');
         const text = document.getElementById('statusText');
-        
+
         if (status.running) {
             indicator.className = 'status-indicator running';
             text.textContent = 'Bot Running';
@@ -103,16 +103,16 @@ async function loadStatus() {
             document.getElementById('startBtn').disabled = false;
             document.getElementById('stopBtn').disabled = true;
         }
-        
+
         // Update dry run toggle
         document.getElementById('dryRunToggle').checked = status.dry_run || false;
-        
+
         // Update accounts badge
         const trackedCount = status.tracked_accounts || 0;
         const enabledCount = status.enabled_accounts || 0;
         const badge = document.getElementById('accountsBadge');
         badge.textContent = `${enabledCount} of ${trackedCount} Accounts Active`;
-        
+
     } catch (error) {
         console.error('Error loading status:', error);
     }
@@ -125,24 +125,24 @@ async function loadPortfolioStats() {
         if (document.getElementById('accountBalance')) {
             document.getElementById('accountBalance').textContent = formatCurrency(stats.account_balance || 0);
         }
-        
+
         document.getElementById('openPositions').textContent = stats.open_positions;
         document.getElementById('totalValue').textContent = formatCurrency(stats.total_current_value);
-        
+
         const unrealizedEl = document.getElementById('unrealizedPnl');
         unrealizedEl.textContent = formatCurrency(stats.unrealized_pnl);
         unrealizedEl.className = 'stat-value ' + (stats.unrealized_pnl >= 0 ? 'positive' : 'negative');
-        
+
         const realizedEl = document.getElementById('realizedPnl');
         realizedEl.textContent = formatCurrency(stats.realized_pnl);
         realizedEl.className = 'stat-value ' + (stats.realized_pnl >= 0 ? 'positive' : 'negative');
-        
+
         const totalPnlEl = document.getElementById('totalPnl');
         totalPnlEl.textContent = formatCurrency(stats.total_pnl);
         totalPnlEl.className = 'stat-value ' + (stats.total_pnl >= 0 ? 'positive' : 'negative');
-        
+
         document.getElementById('totalWithdrawn').textContent = formatCurrency(stats.total_withdrawn);
-        
+
     } catch (error) {
         console.error('Error loading portfolio stats:', error);
     }
@@ -152,9 +152,9 @@ async function loadPositions() {
     try {
         const response = await fetch('/api/positions');
         const positions = await response.json();
-        
+
         const container = document.getElementById('positionsList');
-        
+
         if (positions.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
@@ -164,52 +164,59 @@ async function loadPositions() {
             `;
             return;
         }
-        
-        container.innerHTML = positions.map(pos => `
-            <div class="position-card">
-                <div class="position-header">
-                    <div class="position-title">${escapeHtml(pos.title || 'Unknown Market')}</div>
-                    <div class="position-pnl ${pos.pnl >= 0 ? 'positive' : 'negative'}">
-                        ${formatCurrency(pos.pnl)} (${pos.pnl_percent.toFixed(2)}%)
-                    </div>
-                </div>
-                <div class="position-details">
-                    <div class="detail-item">
-                        <div class="detail-label">Outcome</div>
-                        <div>${escapeHtml(pos.outcome || 'Unknown')}</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">Size</div>
-                        <div>${pos.size.toFixed(2)} shares</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">Entry Price</div>
-                        <div>${(pos.price * 100).toFixed(1)}¢</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">Current Price</div>
-                        <div>${(pos.currentPrice * 100).toFixed(1)}¢</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">Cost Basis</div>
-                        <div>${formatCurrency(pos.cost_basis)}</div>
-                    </div>
-                    <div class="detail-item">
-                        <div class="detail-label">Current Value</div>
-                        <div>${formatCurrency(pos.current_value)}</div>
-                    </div>
-                </div>
-                <div class="position-actions">
-                    <button class="btn btn-secondary btn-sm" onclick='showPartialSellModal(${JSON.stringify(pos)})'>
-                        Sell Partial
-                    </button>
-                    <button class="btn btn-danger btn-sm" onclick='closeFullPosition(${JSON.stringify(pos)})'>
-                        Close Full
-                    </button>
-                </div>
-            </div>
-        `).join('');
-        
+
+        container.innerHTML = `
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Market</th>
+                        <th>Outcome</th>
+                        <th>Cost</th>
+                        <th>Value</th>
+                        <th>P&L</th>
+                        <th style="text-align: right;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${positions.map(pos => `
+                        <tr>
+                            <td>
+                                <div style="font-weight: 600; color: #fff; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(pos.title || 'Unknown Market')}">
+                                    ${escapeHtml(pos.title || 'Unknown Market')}
+                                </div>
+                            </td>
+                            <td>
+                                <div style="font-weight: 500;">${escapeHtml(pos.outcome || 'Unknown')}</div>
+                                <div style="font-size: 11px; color: var(--text-dim);">${pos.size.toFixed(2)} sh</div>
+                            </td>
+                            <td>${formatCurrency(pos.cost_basis)}</td>
+                            <td>
+                                <div style="font-weight: 600;">${formatCurrency(pos.current_value)}</div>
+                            </td>
+                            <td>
+                                <div class="${pos.pnl >= 0 ? 'positive' : 'negative'}">
+                                    ${formatCurrency(pos.pnl)}
+                                </div>
+                                <div class="${pos.pnl >= 0 ? 'positive' : 'negative'}" style="font-size: 11px;">
+                                    ${pos.pnl_percent >= 0 ? '+' : ''}${pos.pnl_percent.toFixed(2)}%
+                                </div>
+                            </td>
+                            <td style="text-align: right;">
+                                <div style="display: flex; gap: 8px; justify-content: flex-end;">
+                                    <button class="btn btn-secondary btn-sm" style="padding: 6px 12px; font-size: 11px;" onclick='showPartialSellModal(${JSON.stringify(pos)})'>
+                                        Sell
+                                    </button>
+                                    <button class="btn btn-danger btn-sm" style="padding: 6px 12px; font-size: 11px;" onclick='closeFullPosition(${JSON.stringify(pos)})'>
+                                        Close
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        `;
+
     } catch (error) {
         console.error('Error loading positions:', error);
         document.getElementById('positionsList').innerHTML = `
@@ -224,9 +231,9 @@ async function loadAccounts() {
     try {
         const response = await fetch('/api/accounts');
         const accounts = await response.json();
-        
+
         const container = document.getElementById('accountsList');
-        
+
         if (accounts.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
@@ -236,25 +243,28 @@ async function loadAccounts() {
             `;
             return;
         }
-        
+
         // Load status to get per-account stats
         const statusResponse = await fetch('/api/status');
         const status = await statusResponse.json();
         const accountStats = status.stats?.accounts || {};
-        
+
         container.innerHTML = accounts.map(account => {
             const stats = accountStats[account.address] || {};
             const enabled = account.enabled !== false;
-            
+
             return `
                 <div class="account-card ${!enabled ? 'disabled' : ''}">
                     <div class="account-header">
                         <div class="account-info">
-                            <div class="account-name">
+                            <div class="account-name" title="${escapeHtml(account.name || 'Unknown')}">
                                 ${escapeHtml(account.name || 'Unknown')}
-                                ${!enabled ? '<span class="badge" style="background: #fed7d7; color: #742a2a;">Disabled</span>' : ''}
+                                ${!enabled ? '<span class="techno-badge">Disabled</span>' : ''}
                             </div>
-                            <div class="account-address">${account.address}</div>
+                            <div class="account-addr" title="${account.address}">
+                                <span>${account.address.substring(0, 6)}...${account.address.substring(account.address.length - 4)}</span>
+                                <span style="cursor: pointer; opacity: 0.7;" onclick="copyToClipboard('${account.address}')" title="Copy Address">📋</span>
+                            </div>
                         </div>
                         <div class="account-actions">
                             <label class="toggle-switch">
@@ -292,7 +302,7 @@ async function loadAccounts() {
                 </div>
             `;
         }).join('');
-        
+
     } catch (error) {
         console.error('Error loading accounts:', error);
         document.getElementById('accountsList').innerHTML = `
@@ -307,9 +317,9 @@ async function loadWithdrawals() {
     try {
         const response = await fetch('/api/withdrawals');
         const withdrawals = await response.json();
-        
+
         const container = document.getElementById('withdrawalsList');
-        
+
         if (withdrawals.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
@@ -319,10 +329,10 @@ async function loadWithdrawals() {
             `;
             return;
         }
-        
+
         // Sort by date descending
         withdrawals.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
-        
+
         container.innerHTML = withdrawals.slice(0, 10).map(w => `
             <div class="position-card">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -337,7 +347,7 @@ async function loadWithdrawals() {
                 </div>
             </div>
         `).join('');
-        
+
         if (withdrawals.length > 10) {
             container.innerHTML += `
                 <div style="text-align: center; padding: 12px; color: #718096; font-size: 13px;">
@@ -345,7 +355,7 @@ async function loadWithdrawals() {
                 </div>
             `;
         }
-        
+
     } catch (error) {
         console.error('Error loading withdrawals:', error);
     }
@@ -374,12 +384,12 @@ async function addAccount() {
     const address = document.getElementById('accountAddress').value.trim();
     const name = document.getElementById('accountName').value.trim();
     const betAmount = document.getElementById('accountBetAmount').value;
-    
+
     if (!address) {
         showNotification('Please enter a wallet address', 'error');
         return;
     }
-    
+
     try {
         const response = await fetch('/api/accounts', {
             method: 'POST',
@@ -392,9 +402,9 @@ async function addAccount() {
                 bet_amount: betAmount ? parseFloat(betAmount) : null
             })
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             showNotification('Account added successfully', 'success');
             closeModal('addAccountModal');
@@ -412,14 +422,14 @@ async function removeAccount(address) {
     if (!confirm('Are you sure you want to remove this account from tracking?')) {
         return;
     }
-    
+
     try {
         const response = await fetch(`/api/accounts/${encodeURIComponent(address)}`, {
             method: 'DELETE'
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             showNotification('Account removed', 'info');
             loadAccounts();
@@ -441,9 +451,9 @@ async function toggleAccount(address, enabled) {
             },
             body: JSON.stringify({ enabled: enabled })
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             showNotification(enabled ? 'Account enabled' : 'Account disabled', 'info');
             loadAccounts();
@@ -471,22 +481,22 @@ function showPartialSellModal(position) {
 
 async function executeSell() {
     if (!currentSellPosition) return;
-    
+
     const amount = parseFloat(document.getElementById('sellAmount').value);
-    
+
     if (!amount || amount <= 0) {
         showNotification('Please enter a valid amount', 'error');
         return;
     }
-    
+
     if (amount > currentSellPosition.current_value) {
         showNotification('Amount exceeds position value', 'error');
         return;
     }
-    
+
     // Calculate shares to sell
     const sharesToSell = amount / currentSellPosition.currentPrice;
-    
+
     try {
         const response = await fetch('/api/position/close', {
             method: 'POST',
@@ -499,9 +509,9 @@ async function executeSell() {
                 dry_run: document.getElementById('dryRunToggle').checked
             })
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             showNotification(data.message, 'success');
             closeModal('partialSellModal');
@@ -521,7 +531,7 @@ async function closeFullPosition(position) {
     if (!confirm(`Close entire position in "${position.title}"?`)) {
         return;
     }
-    
+
     try {
         const response = await fetch('/api/position/close', {
             method: 'POST',
@@ -534,9 +544,9 @@ async function closeFullPosition(position) {
                 dry_run: document.getElementById('dryRunToggle').checked
             })
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             showNotification(data.message, 'success');
             setTimeout(() => {
@@ -566,9 +576,9 @@ async function executePanicSell() {
                 dry_run: document.getElementById('dryRunToggle').checked
             })
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             showNotification(data.message, 'success');
             closeModal('panicSellModal');
@@ -597,12 +607,12 @@ function showAddWithdrawalModal() {
 async function addWithdrawal() {
     const amount = parseFloat(document.getElementById('withdrawalAmount').value);
     const note = document.getElementById('withdrawalNote').value.trim();
-    
+
     if (!amount || amount <= 0) {
         showNotification('Please enter a valid amount', 'error');
         return;
     }
-    
+
     try {
         const response = await fetch('/api/withdrawals', {
             method: 'POST',
@@ -614,9 +624,9 @@ async function addWithdrawal() {
                 note: note
             })
         });
-        
+
         const data = await response.json();
-        
+
         if (data.success) {
             showNotification('Withdrawal recorded', 'success');
             closeModal('addWithdrawalModal');
@@ -638,18 +648,18 @@ function showSearchWithdrawalsModal() {
 async function searchWithdrawals() {
     const startDate = document.getElementById('searchStartDate').value;
     const endDate = document.getElementById('searchEndDate').value;
-    
+
     if (!startDate || !endDate) {
         showNotification('Please select both start and end dates', 'error');
         return;
     }
-    
+
     try {
         const response = await fetch(`/api/withdrawals/search?start_date=${startDate}&end_date=${endDate}`);
         const data = await response.json();
-        
+
         const resultsContainer = document.getElementById('searchResults');
-        
+
         if (data.withdrawals.length === 0) {
             resultsContainer.innerHTML = `
                 <div class="empty-state">
@@ -658,7 +668,7 @@ async function searchWithdrawals() {
             `;
             return;
         }
-        
+
         resultsContainer.innerHTML = `
             <div style="background: #edf2f7; padding: 16px; border-radius: 8px; margin-bottom: 12px;">
                 <div style="font-weight: 600; color: #2d3748; margin-bottom: 8px;">
@@ -688,7 +698,7 @@ async function searchWithdrawals() {
                 </div>
             `).join('')}
         `;
-        
+
     } catch (error) {
         showNotification('Error searching withdrawals: ' + error.message, 'error');
     }
@@ -701,13 +711,13 @@ async function searchWithdrawals() {
 async function exportPositions() {
     try {
         showNotification('Preparing Excel export...', 'info');
-        
+
         const response = await fetch('/api/export/positions');
-        
+
         if (!response.ok) {
             throw new Error('Export failed');
         }
-        
+
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -717,7 +727,7 @@ async function exportPositions() {
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        
+
         showNotification('Positions exported successfully!', 'success');
     } catch (error) {
         showNotification('Error exporting positions: ' + error.message, 'error');
@@ -727,13 +737,13 @@ async function exportPositions() {
 async function exportHistory() {
     try {
         showNotification('Preparing Excel export...', 'info');
-        
+
         const response = await fetch('/api/export/history');
-        
+
         if (!response.ok) {
             throw new Error('Export failed');
         }
-        
+
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -743,7 +753,7 @@ async function exportHistory() {
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        
+
         showNotification('History exported successfully!', 'success');
     } catch (error) {
         showNotification('Error exporting history: ' + error.message, 'error');
@@ -753,13 +763,13 @@ async function exportHistory() {
 async function exportFullReport() {
     try {
         showNotification('Preparing comprehensive report...', 'info');
-        
+
         const response = await fetch('/api/export/full');
-        
+
         if (!response.ok) {
             throw new Error('Export failed');
         }
-        
+
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
         const a = document.createElement('a');
@@ -769,7 +779,7 @@ async function exportFullReport() {
         a.click();
         window.URL.revokeObjectURL(url);
         document.body.removeChild(a);
-        
+
         showNotification('Full report exported successfully!', 'success');
     } catch (error) {
         showNotification('Error exporting report: ' + error.message, 'error');
@@ -789,7 +799,7 @@ function closeModal(modalId) {
 }
 
 // Close modal when clicking outside
-window.onclick = function(event) {
+window.onclick = function (event) {
     if (event.target.classList.contains('modal')) {
         event.target.style.display = 'none';
     }
@@ -804,16 +814,16 @@ function formatTimestamp(timestamp) {
     const date = new Date(timestamp);
     const now = new Date();
     const diff = now - date;
-    
+
     const minutes = Math.floor(diff / 60000);
     const hours = Math.floor(diff / 3600000);
     const days = Math.floor(diff / 86400000);
-    
+
     if (minutes < 1) return 'Just now';
     if (minutes < 60) return `${minutes}m ago`;
     if (hours < 24) return `${hours}h ago`;
     if (days < 7) return `${days}d ago`;
-    
+
     return date.toLocaleDateString();
 }
 
@@ -821,6 +831,15 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+async function copyToClipboard(text) {
+    try {
+        await navigator.clipboard.writeText(text);
+        showNotification('Address copied to clipboard', 'success');
+    } catch (err) {
+        showNotification('Failed to copy: ' + err.message, 'error');
+    }
 }
 
 function showNotification(message, type = 'info') {
@@ -837,21 +856,21 @@ function showNotification(message, type = 'info') {
         z-index: 10000;
         animation: slideIn 0.3s ease-out;
     `;
-    
+
     const colors = {
         success: { bg: '#c6f6d5', text: '#22543d' },
         error: { bg: '#fed7d7', text: '#742a2a' },
         info: { bg: '#bee3f8', text: '#2c5282' },
         warning: { bg: '#feebc8', text: '#7c2d12' }
     };
-    
+
     const color = colors[type] || colors.info;
     notification.style.background = color.bg;
     notification.style.color = color.text;
     notification.textContent = message;
-    
+
     document.body.appendChild(notification);
-    
+
     setTimeout(() => {
         notification.style.animation = 'slideOut 0.3s ease-out';
         setTimeout(() => notification.remove(), 300);

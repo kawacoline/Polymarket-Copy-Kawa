@@ -346,6 +346,10 @@
         .account-name {
             font-weight: 700;
             font-size: 16px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
         }
 
         .account-addr {
@@ -353,6 +357,35 @@
             font-size: 11px;
             color: var(--text-dim);
             margin-top: 4px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .account-info {
+            min-width: 0;
+            /* Crucial for flex child truncation */
+            flex-grow: 1;
+            margin-right: 12px;
+        }
+
+        .techno-badge {
+            display: inline-block;
+            background: rgba(255, 59, 59, 0.15);
+            color: #ff5e5e;
+            border: 1px solid rgba(255, 59, 59, 0.3);
+            border-radius: 4px;
+            padding: 2px 6px;
+            font-size: 10px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-left: 8px;
+            vertical-align: middle;
         }
 
         /* Toggle Switch */
@@ -752,7 +785,8 @@
         </div>
     </div>
 
-    <script src="/static/js/app.js"></script>
+    <!-- Force browser to load new JS instead of cached version -->
+    <script src="/static/js/app.js?v=2"></script>
     <script>
         // Adjust for any small styling variations in dynamic elements
         // This makes sure dynamically added elements (like table rows) match the new theme

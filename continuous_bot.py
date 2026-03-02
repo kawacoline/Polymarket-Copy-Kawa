@@ -14,6 +14,7 @@ FUNDER_ADDRESS = os.getenv("FUNDER_ADDRESS")
 PRIVATE_KEY = os.getenv("PRIVATE_KEY")
 SIGNATURE_TYPE = int(os.getenv("SIGNATURE_TYPE", 1))
 BET_AMOUNT = float(os.getenv("BET_AMOUNT", 2.0))
+MAX_TRADES_PER_SESSION = int(os.getenv("MAX_TRADES_PER_SESSION", 3))
 
 DATA_API = "https://data-api.polymarket.com"
 CLOB_API = "https://clob.polymarket.com"
@@ -35,6 +36,7 @@ class CopyTradingBot:
         self.seen_trades = self.load_seen_trades()
         self.last_check = None
         self.target_accounts = self.load_target_accounts()
+        self.trades_this_session = 0  # Session management
         
         # Global stats
         self.stats = {
@@ -443,6 +445,11 @@ class CopyTradingBot:
             if trade_id in self.seen_trades:
                 return
             
+            # SESSION LIMIT CHECK
+            if self.trades_this_session >= MAX_TRADES_PER_SESSION:
+                print(f"  [SESSION LIMIT] Reached max trades ({MAX_TRADES_PER_SESSION}). Skipping {name}'s trade on {title}.")
+                return
+            
             # This is a new trade to copy!
             log_msg = f"[{datetime.now().strftime('%H:%M:%S')}] 📋 New trade from {name}:"
             print(f"\n{log_msg}")
@@ -489,6 +496,9 @@ class CopyTradingBot:
                 if address in self.stats["accounts"]:
                     self.stats["accounts"][address]["trades_copied"] += 1
                 
+                self.trades_this_session += 1  # Increment session counter
+                print(f"  [SESSION] Trades this session: {self.trades_this_session}/{MAX_TRADES_PER_SESSION}")
+                
             else:
                 print(f"  ⚡ LIVE MODE - Executing trade...")
                 try:
@@ -502,6 +512,9 @@ class CopyTradingBot:
                     
                     if address in self.stats["accounts"]:
                         self.stats["accounts"][address]["trades_copied"] += 1
+                    
+                    self.trades_this_session += 1  # Increment session counter
+                    print(f"  [SESSION] Trades this session: {self.trades_this_session}/{MAX_TRADES_PER_SESSION}")
                     
                     # Log live trade to database
                     try:
