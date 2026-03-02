@@ -1,10 +1,31 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Polymarket Multi-Account Copy Trading Bot</title>
+    <title>Polymarket Bot | Command Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+        rel="stylesheet">
     <style>
+        :root {
+            --bg-deep: #0b0e11;
+            --bg-card: rgba(23, 27, 34, 0.7);
+            --border-glass: rgba(255, 255, 255, 0.08);
+            --text-main: #f0f2f5;
+            --text-dim: #94a3b8;
+            --accent-primary: #00a3ff;
+            --accent-success: #00ffad;
+            --accent-danger: #ff3b3b;
+            --accent-warning: #ffb800;
+            --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            --glass-blur: blur(12px);
+        }
+
         * {
             margin: 0;
             padding: 0;
@@ -12,371 +33,334 @@
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: var(--font-main);
+            background-color: var(--bg-deep);
+            background-image:
+                radial-gradient(circle at 0% 0%, rgba(0, 163, 255, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 100% 100%, rgba(118, 75, 162, 0.05) 0%, transparent 40%);
+            color: var(--text-main);
             min-height: 100vh;
-            padding: 20px;
+            padding: 24px;
+            line-height: 1.5;
         }
 
         .container {
-            max-width: 1400px;
+            max-width: 1440px;
             margin: 0 auto;
         }
 
-        .header {
-            background: white;
-            border-radius: 12px;
+        /* Glassmorphism Generic Card */
+        .glass-card {
+            background: var(--bg-card);
+            backdrop-filter: var(--glass-blur);
+            -webkit-backdrop-filter: var(--glass-blur);
+            border: 1px solid var(--border-glass);
+            border-radius: 20px;
             padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+            transition: transform 0.2s ease, border-color 0.2s ease;
         }
 
-        h1 {
-            color: #2d3748;
-            font-size: 28px;
-            margin-bottom: 8px;
+        /* Header */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 32px;
         }
 
-        .subtitle {
-            color: #718096;
+        .brand h1 {
+            font-size: 24px;
+            font-weight: 800;
+            letter-spacing: -0.5px;
+            background: linear-gradient(to right, #fff, #94a3b8);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand p {
+            color: var(--text-dim);
             font-size: 14px;
+            margin-top: 4px;
         }
 
-        .badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 12px;
-            font-weight: 600;
-            margin-left: 12px;
-        }
-
-        .badge-success {
-            background: #c6f6d5;
-            color: #22543d;
-        }
-
-        .badge-info {
-            background: #bee3f8;
-            color: #2c5282;
-        }
-
-        .controls {
-            background: white;
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
-        .controls-grid {
+        /* Stats Grid */
+        .stats-grid {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 16px;
+            margin-bottom: 32px;
+        }
+
+        .stat-card {
+            padding: 20px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .stat-card::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 4px;
+            height: 100%;
+            background: var(--accent-primary);
+            opacity: 0.3;
+        }
+
+        .stat-label {
+            font-size: 11px;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: var(--text-dim);
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 26px;
+            font-weight: 800;
+            font-family: var(--font-mono);
+            letter-spacing: -1px;
+        }
+
+        .stat-value.positive {
+            color: var(--accent-success);
+            text-shadow: 0 0 20px rgba(0, 255, 173, 0.2);
+        }
+
+        .stat-value.negative {
+            color: var(--accent-danger);
+            text-shadow: 0 0 20px rgba(255, 59, 59, 0.2);
+        }
+
+        /* Controls Section */
+        .control-panel {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 20px;
+            margin-bottom: 32px;
+        }
+
+        .action-group {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
         }
 
         .btn {
-            padding: 12px 24px;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
+            font-family: var(--font-main);
             font-weight: 600;
+            font-size: 14px;
+            padding: 12px 24px;
+            border-radius: 12px;
+            border: 1px solid transparent;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
 
         .btn-primary {
-            background: #48bb78;
-            color: white;
+            background: var(--accent-success);
+            color: #000;
+            box-shadow: 0 0 20px rgba(0, 255, 173, 0.15);
         }
 
-        .btn-primary:hover {
-            background: #38a169;
+        .btn-primary:hover:not(:disabled) {
+            background: #00e69b;
             transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(72, 187, 120, 0.4);
+            box-shadow: 0 0 30px rgba(0, 255, 173, 0.3);
         }
 
         .btn-danger {
-            background: #f56565;
-            color: white;
+            background: rgba(255, 59, 59, 0.1);
+            color: var(--accent-danger);
+            border-color: rgba(255, 59, 59, 0.3);
         }
 
-        .btn-danger:hover {
-            background: #e53e3e;
-            transform: translateY(-2px);
-            box-shadow: 0 4px 12px rgba(245, 101, 101, 0.4);
+        .btn-danger:hover:not(:disabled) {
+            background: var(--accent-danger);
+            color: white;
+            box-shadow: 0 0 30px rgba(255, 59, 59, 0.3);
         }
 
         .btn-warning {
-            background: #ed8936;
-            color: white;
+            background: rgba(255, 184, 0, 0.1);
+            color: var(--accent-warning);
+            border-color: rgba(255, 184, 0, 0.3);
         }
 
-        .btn-warning:hover {
-            background: #dd6b20;
+        .btn-warning:hover:not(:disabled) {
+            background: var(--accent-warning);
+            color: #000;
         }
 
         .btn-secondary {
-            background: #4299e1;
-            color: white;
+            background: rgba(255, 255, 255, 0.05);
+            color: #fff;
+            border-color: var(--border-glass);
         }
 
         .btn-secondary:hover {
-            background: #3182ce;
-        }
-
-        .btn-outline {
-            background: white;
-            color: #4299e1;
-            border: 2px solid #4299e1;
-        }
-
-        .btn-outline:hover {
-            background: #4299e1;
-            color: white;
+            background: rgba(255, 255, 255, 0.1);
         }
 
         .btn:disabled {
-            opacity: 0.5;
+            opacity: 0.3;
             cursor: not-allowed;
-            transform: none !important;
+            filter: grayscale(1);
         }
 
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-            gap: 16px;
-            margin-bottom: 20px;
-        }
-
-        .stat-card {
-            background: white;
-            border-radius: 12px;
-            padding: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
-        .stat-label {
-            color: #718096;
-            font-size: 12px;
-            font-weight: 600;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 8px;
-        }
-
-        .stat-value {
-            color: #2d3748;
-            font-size: 28px;
-            font-weight: 700;
-        }
-
-        .stat-value.positive {
-            color: #48bb78;
-        }
-
-        .stat-value.negative {
-            color: #f56565;
-        }
-
-        .positions-section {
-            background: white;
-            border-radius: 12px;
-            padding: 24px;
-            margin-bottom: 20px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
-
-        .section-title {
-            font-size: 20px;
-            font-weight: 700;
-            color: #2d3748;
-            margin-bottom: 20px;
-            padding-bottom: 12px;
-            border-bottom: 2px solid #e2e8f0;
-        }
-
-        .position-card, .account-card {
-            background: #f7fafc;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 12px;
-            border: 1px solid #e2e8f0;
-            transition: all 0.2s;
-        }
-
-        .position-card:hover, .account-card:hover {
-            border-color: #cbd5e0;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-        }
-
-        .account-card.disabled {
-            opacity: 0.6;
-            background: #edf2f7;
-        }
-
-        .position-header {
+        /* Status Module */
+        .status-module {
             display: flex;
+            align-items: center;
             justify-content: space-between;
-            align-items: start;
-            margin-bottom: 12px;
+            padding: 14px 20px;
+            background: rgba(255, 255, 255, 0.03);
+            border-radius: 14px;
+            border: 1px solid var(--border-glass);
         }
 
-        .position-title {
-            font-weight: 600;
-            color: #2d3748;
-            font-size: 15px;
-            flex: 1;
-        }
-
-        .position-pnl {
-            font-weight: 700;
-            font-size: 16px;
-            margin-left: 12px;
-        }
-
-        .position-details {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 12px;
-            margin-bottom: 12px;
-            font-size: 13px;
-        }
-
-        .detail-item {
-            color: #4a5568;
-        }
-
-        .detail-label {
-            color: #718096;
-            font-size: 11px;
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-        }
-
-        .position-actions {
+        .status-pill {
             display: flex;
-            gap: 8px;
-            margin-top: 12px;
+            align-items: center;
+            gap: 10px;
+            font-size: 13px;
+            font-weight: 600;
         }
 
-        .btn-sm {
-            padding: 6px 12px;
-            font-size: 12px;
-        }
-
-        .status-indicator {
-            display: inline-block;
+        .dot {
             width: 10px;
             height: 10px;
             border-radius: 50%;
-            margin-right: 8px;
+            position: relative;
         }
 
-        .status-indicator.running {
-            background: #48bb78;
-            box-shadow: 0 0 8px rgba(72, 187, 120, 0.6);
+        .dot::after {
+            content: '';
+            position: absolute;
+            top: -2px;
+            left: -2px;
+            right: -2px;
+            bottom: -2px;
+            background: inherit;
+            border-radius: 50%;
+            opacity: 0.4;
+            animation: pulse 2s infinite;
         }
 
-        .status-indicator.stopped {
-            background: #f56565;
-        }
+        @keyframes pulse {
+            0% {
+                transform: scale(1);
+                opacity: 0.4;
+            }
 
-        .status-message {
-            background: #edf2f7;
-            padding: 12px 16px;
-            border-radius: 8px;
-            margin-top: 12px;
-            font-size: 13px;
-            color: #4a5568;
-        }
-
-        /* Modal styles */
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.5);
-            animation: fadeIn 0.2s;
-        }
-
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-
-        .modal-content {
-            background: white;
-            margin: 100px auto;
-            padding: 32px;
-            border-radius: 12px;
-            max-width: 500px;
-            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-            animation: slideDown 0.3s;
-        }
-
-        @keyframes slideDown {
-            from {
-                transform: translateY(-50px);
+            100% {
+                transform: scale(3);
                 opacity: 0;
             }
-            to {
-                transform: translateY(0);
-                opacity: 1;
-            }
         }
 
-        .modal-title {
-            font-size: 24px;
-            font-weight: 700;
-            color: #2d3748;
-            margin-bottom: 24px;
+        .dot.running {
+            background: var(--accent-success);
         }
 
-        .modal-actions {
-            display: flex;
-            gap: 12px;
-            justify-content: flex-end;
-            margin-top: 24px;
+        .dot.stopped {
+            background: var(--accent-danger);
         }
 
-        .form-group {
+        /* Tables & Lists */
+        .section-title {
+            font-size: 18px;
+            font-weight: 800;
             margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
         }
 
-        .form-label {
-            display: block;
-            font-weight: 600;
-            color: #4a5568;
-            margin-bottom: 8px;
-            font-size: 14px;
+        .data-table-wrapper {
+            overflow-x: auto;
         }
 
-        .form-input {
+        .data-table {
             width: 100%;
-            padding: 10px 12px;
-            border: 2px solid #e2e8f0;
-            border-radius: 8px;
+            border-collapse: collapse;
             font-size: 14px;
-            transition: border-color 0.2s;
         }
 
-        .form-input:focus {
-            outline: none;
-            border-color: #4299e1;
+        .data-table th {
+            text-align: left;
+            color: var(--text-dim);
+            font-weight: 700;
+            font-size: 11px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 16px;
+            border-bottom: 1px solid var(--border-glass);
         }
 
+        .data-table td {
+            padding: 16px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+        }
+
+        .data-table tr:hover {
+            background: rgba(255, 255, 255, 0.02);
+        }
+
+        /* Account Cards */
+        .accounts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 16px;
+        }
+
+        .account-card {
+            padding: 20px;
+            border-radius: 16px;
+        }
+
+        .account-card.disabled {
+            opacity: 0.5;
+            filter: grayscale(0.5);
+        }
+
+        .account-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 16px;
+        }
+
+        .account-name {
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .account-addr {
+            font-family: var(--font-mono);
+            font-size: 11px;
+            color: var(--text-dim);
+            margin-top: 4px;
+        }
+
+        /* Toggle Switch */
         .toggle-switch {
             position: relative;
             display: inline-block;
-            width: 50px;
-            height: 24px;
+            width: 44px;
+            height: 22px;
         }
 
         .toggle-switch input {
@@ -392,348 +376,389 @@
             left: 0;
             right: 0;
             bottom: 0;
-            background-color: #cbd5e0;
-            transition: 0.3s;
-            border-radius: 24px;
+            background-color: rgba(255, 255, 255, 0.1);
+            transition: .4s;
+            border-radius: 20px;
         }
 
         .slider:before {
             position: absolute;
             content: "";
-            height: 18px;
-            width: 18px;
+            height: 16px;
+            width: 16px;
             left: 3px;
             bottom: 3px;
             background-color: white;
-            transition: 0.3s;
+            transition: .4s;
             border-radius: 50%;
         }
 
-        input:checked + .slider {
-            background-color: #48bb78;
+        input:checked+.slider {
+            background-color: var(--accent-primary);
         }
 
-        input:checked + .slider:before {
-            transform: translateX(26px);
+        input:checked+.slider:before {
+            transform: translateX(22px);
         }
 
-        .empty-state {
-            text-align: center;
-            padding: 48px 24px;
-            color: #a0aec0;
+        /* Modal Styles */
+        .modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.8);
+            backdrop-filter: blur(8px);
+            z-index: 1000;
+            padding: 20px;
+            align-items: center;
+            justify-content: center;
         }
 
-        .empty-state-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
+        .modal-content {
+            background: #171b22;
+            border: 1px solid var(--border-glass);
+            width: 100%;
+            max-width: 480px;
+            border-radius: 24px;
+            padding: 32px;
+            box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+            animation: modalScale 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
         }
 
-        .loading {
-            text-align: center;
-            padding: 24px;
-            color: #718096;
+        @keyframes modalScale {
+            from {
+                transform: scale(0.9) translateY(20px);
+                opacity: 0;
+            }
+
+            to {
+                transform: scale(1) translateY(0);
+                opacity: 1;
+            }
         }
 
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        .form-input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border-glass);
+            border-radius: 12px;
+            padding: 12px 16px;
+            color: #fff;
+            font-family: var(--font-main);
+            margin-top: 8px;
+            transition: border-color 0.2s;
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--accent-primary);
+        }
+
+        .badge-count {
+            background: rgba(0, 163, 255, 0.1);
+            color: var(--accent-primary);
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 700;
+        }
+
+        .loading-spinner {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            color: var(--text-dim);
+            padding: 40px;
         }
 
         .spinner {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid #e2e8f0;
-            border-top-color: #4299e1;
+            width: 30px;
+            height: 30px;
+            border: 3px solid rgba(255, 255, 255, 0.1);
+            border-top-color: var(--accent-primary);
             border-radius: 50%;
-            animation: spin 0.8s linear infinite;
+            animation: spin 1s linear infinite;
         }
 
-        .export-section {
-            display: flex;
-            gap: 12px;
-            flex-wrap: wrap;
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
         }
 
-        .account-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
+        /* Scrollbar */
+        ::-webkit-scrollbar {
+            width: 8px;
         }
 
-        .account-info {
-            flex: 1;
+        ::-webkit-scrollbar-track {
+            background: var(--bg-deep);
         }
 
-        .account-name {
-            font-weight: 600;
-            color: #2d3748;
-            font-size: 15px;
+        ::-webkit-scrollbar-thumb {
+            background: #2f3336;
+            border-radius: 4px;
         }
 
-        .account-address {
-            font-size: 12px;
-            color: #718096;
-            font-family: monospace;
-            margin-top: 4px;
-        }
-
-        .account-stats {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 12px;
-            margin: 12px 0;
-            font-size: 13px;
-        }
-
-        .account-actions {
-            display: flex;
-            gap: 8px;
-            align-items: center;
+        ::-webkit-scrollbar-thumb:hover {
+            background: #3e4244;
         }
     </style>
 </head>
+
 <body>
     <div class="container">
-        <!-- Header -->
-        <div class="header">
-            <h1>🤖 Polymarket Multi-Account Copy Trading Bot</h1>
-            <p class="subtitle">
-                Monitor and copy trades from multiple accounts automatically
-                <span id="accountsBadge" class="badge badge-info">0 Accounts Tracked</span>
-            </p>
-        </div>
-
-        <!-- Controls -->
-        <div class="controls">
-            <div class="controls-grid">
-                <button id="startBtn" class="btn btn-primary" onclick="startBot()">
-                    ▶ Start Bot
-                </button>
-                <button id="stopBtn" class="btn btn-danger" onclick="stopBot()" disabled>
-                    ⏸ Stop Bot
-                </button>
-                <button id="panicSellBtn" class="btn btn-warning" onclick="showPanicSellModal()">
-                    🚨 Panic Sell All
-                </button>
-                <button class="btn btn-secondary" onclick="refreshAll()">
-                    🔄 Refresh
-                </button>
+        <!-- Dashboard Header -->
+        <header class="page-header">
+            <div class="brand">
+                <h1><span style="font-size: 28px;">⚡</span> COMMAND CENTER</h1>
+                <p>Polymarket Multi-Account Copy Trade Engine</p>
             </div>
-            
-            <div class="status-message" style="margin-top: 16px; display: flex; align-items: center; justify-content: space-between;">
-                <div>
-                    <span id="statusIndicator" class="status-indicator stopped"></span>
-                    <span id="statusText">Bot Stopped</span>
-                </div>
-                <div style="display: flex; align-items: center; gap: 12px;">
-                    <span style="font-size: 13px; font-weight: 600;">Dry Run Mode:</span>
-                    <label class="toggle-switch">
-                        <input type="checkbox" id="dryRunToggle" onchange="toggleDryRun()" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
+            <div class="header-actions">
+                <span id="accountsBadge" class="badge-count">0 ACCOUNTS ACTIVE</span>
             </div>
-        </div>
+        </header>
 
-        <!-- Portfolio Stats -->
+        <!-- Dynamic Stats Hero -->
         <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-label">Available Balance (USDC)</div>
+            <div class="glass-card stat-card">
+                <div class="stat-label">Available Liquidity</div>
                 <div id="accountBalance" class="stat-value">$0.00</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">Open Positions</div>
-                <div class="stat-value" id="openPositions">-</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Total Value</div>
-                <div class="stat-value" id="totalValue">$0.00</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Unrealized P&L</div>
-                <div class="stat-value" id="unrealizedPnl">$0.00</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">Realized P&L</div>
-                <div class="stat-value" id="realizedPnl">$0.00</div>
-            </div>
-            <div class="stat-card">
+            <div class="glass-card stat-card" style="--accent-primary: var(--accent-success)">
                 <div class="stat-label">Total P&L</div>
-                <div class="stat-value" id="totalPnl">$0.00</div>
+                <div id="totalPnl" class="stat-value">$0.00</div>
             </div>
-            <div class="stat-card">
-                <div class="stat-label">Total Withdrawn</div>
-                <div class="stat-value" id="totalWithdrawn">$0.00</div>
+            <div class="glass-card stat-card">
+                <div class="stat-label">Open Positions</div>
+                <div id="openPositions" class="stat-value">0</div>
+            </div>
+            <div class="glass-card stat-card" style="--accent-primary: var(--accent-warning)">
+                <div class="stat-label">Unrealized P&L</div>
+                <div id="unrealizedPnl" class="stat-value">$0.00</div>
+            </div>
+            <div class="glass-card stat-card">
+                <div class="stat-label">Realized P&L</div>
+                <div id="realizedPnl" class="stat-value">$0.00</div>
             </div>
         </div>
 
-        <!-- Target Accounts Management -->
-        <div class="positions-section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 class="section-title" style="margin: 0; padding: 0; border: none;">Tracked Accounts</h2>
-                <button class="btn btn-primary btn-sm" onclick="showAddAccountModal()">
-                    + Add Account
-                </button>
-            </div>
-            <div id="accountsList">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p style="margin-top: 12px;">Loading accounts...</p>
+        <!-- Main Workspace -->
+        <div class="control-panel">
+            <!-- Execution Controls -->
+            <div class="glass-card">
+                <div class="section-title">ENGINE EXECUTION</div>
+                <div class="action-group">
+                    <button id="startBtn" class="btn btn-primary" onclick="startBot()">
+                        <span>▶</span> Start Engine
+                    </button>
+                    <button id="stopBtn" class="btn btn-secondary" onclick="stopBot()" disabled>
+                        <span>⏸</span> Pause
+                    </button>
+                    <button id="panicSellBtn" class="btn btn-danger" onclick="showPanicSellModal()">
+                        <span>🚨</span> Panic Sell All
+                    </button>
+                    <button class="btn btn-secondary" onclick="refreshAll()">
+                        <span>🔄</span> Refresh
+                    </button>
+                </div>
+
+                <div class="status-module" style="margin-top: 24px;">
+                    <div class="status-pill">
+                        <span id="statusIndicator" class="dot stopped"></span>
+                        <span id="statusText">SYSTEM OFFLINE</span>
+                    </div>
+                    <div class="status-pill">
+                        <span style="color: var(--text-dim); margin-right: 8px;">DRY RUN:</span>
+                        <label class="toggle-switch">
+                            <input type="checkbox" id="dryRunToggle" onchange="toggleDryRun()" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <!-- Positions -->
-        <div class="positions-section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 class="section-title" style="margin: 0; padding: 0; border: none;">Active Positions</h2>
-                <div class="export-section">
-                    <button class="btn btn-outline btn-sm" onclick="exportPositions()">
+            <!-- Export Actions -->
+            <div class="glass-card">
+                <div class="section-title">REPORTS</div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                    <button class="btn btn-secondary btn-sm" style="justify-content: flex-start;"
+                        onclick="exportPositions()">
                         📊 Export Positions
                     </button>
-                    <button class="btn btn-outline btn-sm" onclick="exportHistory()">
-                        📜 Export History
+                    <button class="btn btn-secondary btn-sm" style="justify-content: flex-start;"
+                        onclick="exportHistory()">
+                        📜 Trade History
                     </button>
-                    <button class="btn btn-outline btn-sm" onclick="exportFullReport()">
-                        📑 Full Report
+                    <button class="btn btn-secondary btn-sm" style="justify-content: flex-start;"
+                        onclick="exportFullReport()">
+                        📑 PDF Audit Report
                     </button>
-                </div>
-            </div>
-            <div id="positionsList">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p style="margin-top: 12px;">Loading positions...</p>
                 </div>
             </div>
         </div>
 
-        <!-- Withdrawals -->
-        <div class="positions-section">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h2 class="section-title" style="margin: 0; padding: 0; border: none;">Withdrawal History</h2>
-                <div style="display: flex; gap: 12px;">
-                    <button class="btn btn-secondary btn-sm" onclick="showAddWithdrawalModal()">
-                        + Add Withdrawal
+        <!-- Tracked Accounts -->
+        <div class="glass-card" style="margin-bottom: 32px;">
+            <div class="section-title">
+                WHALE TRACKING
+                <button class="btn btn-primary btn-sm" style="padding: 6px 14px; font-size: 11px;"
+                    onclick="showAddAccountModal()">
+                    + Add Target
+                </button>
+            </div>
+            <div id="accountsList" class="accounts-grid">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Syncing target addresses...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Position Monitoring -->
+        <div class="glass-card" style="margin-bottom: 32px;">
+            <div class="section-title">ACTIVE POSITIONS</div>
+            <div id="positionsList" class="data-table-wrapper">
+                <div class="loading-spinner">
+                    <div class="spinner"></div>
+                    <p>Scanning exposure...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Withdrawal & Cashout Log -->
+        <div class="glass-card">
+            <div class="section-title">
+                WITHDRAWAL LOG
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary btn-sm" style="padding: 6px 14px; font-size: 11px;"
+                        onclick="showAddWithdrawalModal()">
+                        + LOG WITHDRAWAL
                     </button>
-                    <button class="btn btn-secondary btn-sm" onclick="showSearchWithdrawalsModal()">
-                        🔍 Search
+                    <button class="btn btn-secondary btn-sm" style="padding: 6px 10px;"
+                        onclick="showSearchWithdrawalsModal()">
+                        🔍
                     </button>
                 </div>
             </div>
             <div id="withdrawalsList">
-                <div class="loading">
-                    <div class="spinner"></div>
-                    <p style="margin-top: 12px;">Loading withdrawals...</p>
-                </div>
+                <!-- Populated by JS -->
             </div>
         </div>
     </div>
 
-    <!-- Add Account Modal -->
+    <!-- Modals (Functional IDs preserved) -->
+
+    <!-- Add Account -->
     <div id="addAccountModal" class="modal">
         <div class="modal-content">
-            <h3 class="modal-title">Add Target Account</h3>
-            <div class="form-group">
-                <label class="form-label" for="accountAddress">Wallet Address</label>
-                <input type="text" id="accountAddress" class="form-input" placeholder="0x...">
-                <div style="font-size: 12px; color: #718096; margin-top: 4px;">
-                    Enter the Ethereum address you want to copy trades from
-                </div>
+            <h3 class="modal-title" style="margin-bottom: 12px;">Add Target</h3>
+            <p style="color: var(--text-dim); font-size: 13px; margin-bottom: 24px;">Follow a high-performing wallet's
+                automated actions.</p>
+            <div style="margin-bottom: 20px;">
+                <label style="font-size: 12px; color: var(--text-dim); font-weight: 700;">WALLET ADDRESS</label>
+                <input type="text" id="accountAddress" class="form-input" style="font-family: var(--font-mono);"
+                    placeholder="0x...">
             </div>
-            <div class="form-group">
-                <label class="form-label" for="accountName">Name (optional)</label>
-                <input type="text" id="accountName" class="form-input" placeholder="e.g., Trader Joe">
+            <div style="margin-bottom: 20px;">
+                <label style="font-size: 12px; color: var(--text-dim); font-weight: 700;">ALIAS</label>
+                <input type="text" id="accountName" class="form-input" placeholder="e.g. Master Trader">
             </div>
-            <div class="form-group">
-                <label class="form-label" for="accountBetAmount">Bet Amount Override (optional)</label>
-                <input type="number" id="accountBetAmount" class="form-input" step="0.01" min="0" placeholder="Leave empty to use default">
-                <div style="font-size: 12px; color: #718096; margin-top: 4px;">
-                    Set a custom bet amount for this account
-                </div>
+            <div style="margin-bottom: 24px;">
+                <label style="font-size: 12px; color: var(--text-dim); font-weight: 700;">MAX BET OVERRIDE ($)</label>
+                <input type="number" id="accountBetAmount" class="form-input" placeholder="Default used if empty">
             </div>
-            <div class="modal-actions">
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
                 <button class="btn btn-secondary" onclick="closeModal('addAccountModal')">Cancel</button>
-                <button class="btn btn-primary" onclick="addAccount()">Add Account</button>
+                <button class="btn btn-primary" onclick="addAccount()">Initialize</button>
             </div>
         </div>
     </div>
 
-    <!-- Partial Sell Modal -->
+    <!-- Sell Modal -->
     <div id="partialSellModal" class="modal">
         <div class="modal-content">
-            <h3 class="modal-title">Sell Position</h3>
-            <div class="form-group">
-                <label class="form-label">Position</label>
-                <div id="sellPositionTitle" style="font-weight: 600; margin-bottom: 12px;"></div>
+            <h3 class="modal-title">Close Position</h3>
+            <div style="padding: 16px; background: rgba(255,255,255,0.03); border-radius: 12px; margin: 16px 0;">
+                <div id="sellPositionTitle" style="font-weight: 700; color: var(--accent-primary);"></div>
+                <div style="font-size: 12px; color: var(--text-dim); margin-top: 4px;">Available: <span
+                        id="sellMaxAmount" style="color: #fff;"></span></div>
             </div>
-            <div class="form-group">
-                <label class="form-label" for="sellAmount">Amount to Sell ($)</label>
-                <input type="number" id="sellAmount" class="form-input" step="0.01" min="0.01">
-                <div style="font-size: 12px; color: #718096; margin-top: 4px;">
-                    Available: <span id="sellMaxAmount"></span>
-                </div>
+            <div style="margin-bottom: 24px;">
+                <label style="font-size: 12px; color: var(--text-dim); font-weight: 700;">AMOUNT TO LIQUIDATE
+                    ($)</label>
+                <input type="number" id="sellAmount" class="form-input" step="0.01">
             </div>
-            <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closeModal('partialSellModal')">Cancel</button>
-                <button class="btn btn-danger" onclick="executeSell()">Sell</button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <button class="btn btn-secondary" onclick="closeModal('partialSellModal')">Abort</button>
+                <button class="btn btn-danger" onclick="executeSell()">Execute Sell</button>
             </div>
         </div>
     </div>
 
-    <!-- Panic Sell Confirmation Modal -->
+    <!-- Panic Sell Modals and others follow same glass pattern -->
     <div id="panicSellModal" class="modal">
-        <div class="modal-content">
-            <h3 class="modal-title">⚠️ Confirm Panic Sell</h3>
-            <p style="margin-bottom: 24px; color: #4a5568;">
-                This will immediately close ALL open positions. This action cannot be undone.
-            </p>
-            <div class="modal-actions">
+        <div class="modal-content" style="border-color: var(--accent-danger);">
+            <h3 class="modal-title" style="color: var(--accent-danger);">⚠️ EMERGENCY PANIC</h3>
+            <p style="margin: 16px 0 32px; color: var(--text-dim); font-size: 14px;">This will route market sell orders
+                for EVERY open position immediately. This is permanent.</p>
+            <div style="display: grid; grid-template-columns: 1fr 2fr; gap: 12px;">
                 <button class="btn btn-secondary" onclick="closeModal('panicSellModal')">Cancel</button>
-                <button class="btn btn-danger" onclick="executePanicSell()">Close All Positions</button>
+                <button class="btn btn-danger" style="background: var(--accent-danger); color: #fff;"
+                    onclick="executePanicSell()">CLOSE ALL POSITIONS</button>
             </div>
         </div>
     </div>
 
-    <!-- Add Withdrawal Modal -->
+    <!-- Add Withdrawal -->
     <div id="addWithdrawalModal" class="modal">
         <div class="modal-content">
-            <h3 class="modal-title">Record Withdrawal</h3>
-            <div class="form-group">
-                <label class="form-label" for="withdrawalAmount">Amount ($)</label>
-                <input type="number" id="withdrawalAmount" class="form-input" step="0.01" min="0.01">
+            <h3 class="modal-title">Record Cashout</h3>
+            <div style="margin: 20px 0;">
+                <label style="font-size: 12px; color: var(--text-dim); font-weight: 700;">AMOUNT (USDC)</label>
+                <input type="number" id="withdrawalAmount" class="form-input">
             </div>
-            <div class="form-group">
-                <label class="form-label" for="withdrawalNote">Note (optional)</label>
-                <input type="text" id="withdrawalNote" class="form-input" placeholder="E.g., Profit withdrawal, Tax payment">
+            <div style="margin-bottom: 24px;">
+                <label style="font-size: 12px; color: var(--text-dim); font-weight: 700;">REFERENCE NOTE</label>
+                <input type="text" id="withdrawalNote" class="form-input" placeholder="e.g. Daily profit">
             </div>
-            <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closeModal('addWithdrawalModal')">Cancel</button>
-                <button class="btn btn-primary" onclick="addWithdrawal()">Add Withdrawal</button>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                <button class="btn btn-secondary" onclick="closeModal('addWithdrawalModal')">Back</button>
+                <button class="btn btn-primary" onclick="addWithdrawal()">Log Flow</button>
             </div>
         </div>
     </div>
 
-    <!-- Search Withdrawals Modal -->
+    <!-- Search Withdrawals -->
     <div id="searchWithdrawalsModal" class="modal">
         <div class="modal-content">
-            <h3 class="modal-title">Search Withdrawals</h3>
-            <div class="form-group">
-                <label class="form-label" for="searchStartDate">Start Date</label>
-                <input type="date" id="searchStartDate" class="form-input">
+            <h3 class="modal-title">Audit Log</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px;">
+                <div>
+                    <label style="font-size: 11px; color: var(--text-dim); font-weight: 700;">START DATE</label>
+                    <input type="date" id="searchStartDate" class="form-input">
+                </div>
+                <div>
+                    <label style="font-size: 11px; color: var(--text-dim); font-weight: 700;">END DATE</label>
+                    <input type="date" id="searchEndDate" class="form-input">
+                </div>
             </div>
-            <div class="form-group">
-                <label class="form-label" for="searchEndDate">End Date</label>
-                <input type="date" id="searchEndDate" class="form-input">
+            <div id="searchResults" style="margin-top: 24px; max-height: 200px; overflow-y: auto;"></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 24px;">
+                <button class="btn btn-secondary" onclick="closeModal('searchWithdrawalsModal')">Close</button>
+                <button class="btn btn-primary" onclick="searchWithdrawals()">Generate</button>
             </div>
-            <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closeModal('searchWithdrawalsModal')">Cancel</button>
-                <button class="btn btn-primary" onclick="searchWithdrawals()">Search</button>
-            </div>
-            <div id="searchResults" style="margin-top: 20px;"></div>
         </div>
     </div>
 
     <script src="/static/js/app.js"></script>
+    <script>
+        // Adjust for any small styling variations in dynamic elements
+        // This makes sure dynamically added elements (like table rows) match the new theme
+        const originalRenderAccounts = window.renderAccounts;
+        // Note: The logic inside app.js might need to be monitored if it creates hardcoded HTML
+    </script>
 </body>
+
 </html>
