@@ -265,6 +265,27 @@ async function loadAccounts() {
                                 <span>${account.address.substring(0, 6)}...${account.address.substring(account.address.length - 4)}</span>
                                 <span style="cursor: pointer; opacity: 0.7;" onclick="copyToClipboard('${account.address}')" title="Copy Address">📋</span>
                             </div>
+                            ${(account.pnl !== undefined || account.winRate !== undefined) ? `
+                                <div class="account-stats">
+                                    <div class="stat-group">
+                                        <span>PnL:</span>
+                                        <span class="${account.pnl >= 0 ? 'positive' : 'negative'}">$${Math.abs(account.pnl || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                                    </div>
+                                    <div class="stat-group">
+                                        <span>WinRate:</span>
+                                        <span style="color: #fff;">${((account.winRate || 0) * 100).toFixed(0)}%</span>
+                                    </div>
+                                    <div class="stat-group">
+                                        <span>Rank:</span>
+                                        <span style="color: #fff;">#${account.rank || '?'}</span>
+                                    </div>
+                                </div>
+                            ` : ''}
+                            ${(account.tags && account.tags.length > 0) ? `
+                                <div class="account-tags">
+                                    ${account.tags.map(tag => `<span class="account-tag">${escapeHtml(tag)}</span>`).join('')}
+                                </div>
+                            ` : ''}
                         </div>
                         <div class="account-actions">
                             <label class="toggle-switch">
