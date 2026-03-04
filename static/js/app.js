@@ -320,8 +320,8 @@ function renderAccounts() {
         const enabled = account.enabled !== false;
         const fullName = account.name || 'Unknown';
         const isExpanded = window.expandedNames[account.address];
-        const needsTruncation = fullName.length > 20;
-        const displayName = (!needsTruncation || isExpanded) ? fullName : fullName.substring(0, 18) + '...';
+        const needsTruncation = fullName.length > 10;
+        const displayName = (!needsTruncation || isExpanded) ? fullName : fullName.substring(0, 8) + '...';
 
         return `
             <div class="glass-panel rounded-xl p-5 h-full flex flex-col justify-between border border-white/10 transition-all hover:border-white/20 ${!enabled ? 'disabled' : ''}">
