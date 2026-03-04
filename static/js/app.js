@@ -157,8 +157,8 @@ async function loadPositions() {
 
         if (positions.length === 0) {
             container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">📭</div>
+                <div class="flex flex-col items-center justify-center p-8 text-center text-muted-foreground bg-white/5 rounded-xl border border-white/5">
+                    <div class="text-4xl mb-4 opacity-50">📭</div>
                     <p>No open positions</p>
                 </div>
             `;
@@ -166,34 +166,34 @@ async function loadPositions() {
         }
 
         container.innerHTML = `
-            <table class="data-table">
+            <table class="w-full text-sm text-left whitespace-nowrap">
                 <thead>
-                    <tr>
-                        <th>Market</th>
-                        <th>Outcome</th>
-                        <th>Cost</th>
-                        <th>Value</th>
-                        <th>P&L</th>
-                        <th style="text-align: right;">Actions</th>
+                    <tr class="group hover:bg-white/5 transition-colors">
+                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50" class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Market</th>
+                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50" class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Outcome</th>
+                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50" class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Cost</th>
+                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50" class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Value</th>
+                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50" class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">P&L</th>
+                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50" style="text-align: right;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     ${positions.map(pos => `
-                        <tr>
-                            <td>
+                        <tr class="group hover:bg-white/5 transition-colors">
+                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors" class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
                                 <div style="font-weight: 600; color: #fff; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(pos.title || 'Unknown Market')}">
                                     ${escapeHtml(pos.title || 'Unknown Market')}
                                 </div>
                             </td>
-                            <td>
+                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors" class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
                                 <div style="font-weight: 500;">${escapeHtml(pos.outcome || 'Unknown')}</div>
                                 <div style="font-size: 11px; color: var(--text-dim);">${pos.size.toFixed(2)} sh</div>
                             </td>
-                            <td>${formatCurrency(pos.cost_basis)}</td>
-                            <td>
+                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors" class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">${formatCurrency(pos.cost_basis)}</td>
+                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors" class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
                                 <div style="font-weight: 600;">${formatCurrency(pos.current_value)}</div>
                             </td>
-                            <td>
+                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors" class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
                                 <div class="${pos.pnl >= 0 ? 'positive' : 'negative'}">
                                     ${formatCurrency(pos.pnl)}
                                 </div>
@@ -201,12 +201,12 @@ async function loadPositions() {
                                     ${pos.pnl_percent >= 0 ? '+' : ''}${pos.pnl_percent.toFixed(2)}%
                                 </div>
                             </td>
-                            <td style="text-align: right;">
+                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors" style="text-align: right;">
                                 <div style="display: flex; gap: 8px; justify-content: flex-end;">
-                                    <button class="btn btn-secondary btn-sm" style="padding: 6px 12px; font-size: 11px;" onclick='showPartialSellModal(${JSON.stringify(pos)})'>
+                                    <button class="inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors border border-input bg-transparent shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-3" style="padding: 6px 12px; font-size: 11px;" onclick='showPartialSellModal(${JSON.stringify(pos)})'>
                                         Sell
                                     </button>
-                                    <button class="btn btn-danger btn-sm" style="padding: 6px 12px; font-size: 11px;" onclick='closeFullPosition(${JSON.stringify(pos)})'>
+                                    <button class="inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 h-8 px-3" style="padding: 6px 12px; font-size: 11px;" onclick='closeFullPosition(${JSON.stringify(pos)})'>
                                         Close
                                     </button>
                                 </div>
@@ -220,7 +220,7 @@ async function loadPositions() {
     } catch (error) {
         console.error('Error loading positions:', error);
         document.getElementById('positionsList').innerHTML = `
-            <div class="empty-state">
+            <div class="flex flex-col items-center justify-center p-8 text-center text-muted-foreground bg-white/5 rounded-xl border border-white/5">
                 <p style="color: #f56565;">Error loading positions</p>
             </div>
         `;
@@ -236,8 +236,8 @@ async function loadAccounts() {
 
         if (accounts.length === 0) {
             container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">👥</div>
+                <div class="flex flex-col items-center justify-center p-8 text-center text-muted-foreground bg-white/5 rounded-xl border border-white/5">
+                    <div class="text-4xl mb-4 opacity-50">👥</div>
                     <p>No accounts configured. Add an account to start tracking trades.</p>
                 </div>
             `;
@@ -254,68 +254,68 @@ async function loadAccounts() {
             const enabled = account.enabled !== false;
 
             return `
-                <div class="account-card ${!enabled ? 'disabled' : ''}">
-                    <div class="account-header">
-                        <div class="account-info">
-                            <div class="account-name" title="${escapeHtml(account.name || 'Unknown')}">
+                <div class="glass-panel rounded-xl p-5 mb-4 border border-white/10 transition-all hover:border-white/20 ${!enabled ? 'disabled' : ''}">
+                    <div class="flex items-start justify-between mb-4 pb-4 border-b border-white/10">
+                        <div class="flex-1 min-w-0 pr-4">
+                            <div class="font-display font-semibold text-lg text-foreground flex items-center gap-2 truncate" title="${escapeHtml(account.name || 'Unknown')}">
                                 ${escapeHtml(account.name || 'Unknown')}
-                                ${!enabled ? '<span class="techno-badge">Disabled</span>' : ''}
+                                ${!enabled ? '<span class="inline-flex shrink-0 items-center justify-center rounded-full border border-destructive/50 bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive uppercase tracking-wider">Disabled</span>' : ''}
                             </div>
-                            <div class="account-addr" title="${account.address}">
+                            <div class="font-mono text-sm text-muted-foreground flex items-center gap-2 mt-1 truncate" title="${account.address}">
                                 <span>${account.address.substring(0, 6)}...${account.address.substring(account.address.length - 4)}</span>
                                 <span style="cursor: pointer; opacity: 0.7;" onclick="copyToClipboard('${account.address}')" title="Copy Address">📋</span>
                             </div>
                             ${(account.pnl !== undefined || account.winRate !== undefined) ? `
-                                <div class="account-stats">
-                                    <div class="stat-group">
+                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                                    <div class="flex items-center gap-1.5 text-sm bg-black/20 px-2 py-1 rounded-md border border-white/5">
                                         <span>PnL:</span>
                                         <span class="${account.pnl >= 0 ? 'positive' : 'negative'}">$${Math.abs(account.pnl || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
                                     </div>
-                                    <div class="stat-group">
+                                    <div class="flex items-center gap-1.5 text-sm bg-black/20 px-2 py-1 rounded-md border border-white/5">
                                         <span>WinRate:</span>
                                         <span style="color: #fff;">${((account.winRate || 0) * 100).toFixed(0)}%</span>
                                     </div>
-                                    <div class="stat-group">
+                                    <div class="flex items-center gap-1.5 text-sm bg-black/20 px-2 py-1 rounded-md border border-white/5">
                                         <span>Rank:</span>
                                         <span style="color: #fff;">#${account.rank || '?'}</span>
                                     </div>
                                 </div>
                             ` : ''}
                             ${(account.tags && account.tags.length > 0) ? `
-                                <div class="account-tags">
-                                    ${account.tags.map(tag => `<span class="account-tag">${escapeHtml(tag)}</span>`).join('')}
+                                <div class="flex flex-wrap gap-2 mt-3">
+                                    ${account.tags.map(tag => `<span class="inline-flex items-center rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs font-medium text-foreground">${escapeHtml(tag)}</span>`).join('')}
                                 </div>
                             ` : ''}
                         </div>
-                        <div class="account-actions">
+                        <div class="flex flex-col items-end gap-3 shrink-0">
                             <label class="toggle-switch">
                                 <input type="checkbox" ${enabled ? 'checked' : ''} 
                                     onchange="toggleAccount('${account.address}', this.checked)">
                                 <span class="slider"></span>
                             </label>
-                            <button class="btn btn-danger btn-sm" onclick="removeAccount('${account.address}')">
+                            <button class="inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 h-8 px-3" onclick="removeAccount('${account.address}')">
                                 Remove
                             </button>
                         </div>
                     </div>
-                    <div class="account-stats">
-                        <div class="detail-item">
-                            <div class="detail-label">Trades Copied</div>
+                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
+                        <div class="flex flex-col gap-1">
+                            <div class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Trades Copied</div>
                             <div>${stats.trades_copied || 0}</div>
                         </div>
-                        <div class="detail-item">
-                            <div class="detail-label">Last Check</div>
+                        <div class="flex flex-col gap-1">
+                            <div class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Last Check</div>
                             <div>${stats.last_check ? formatTimestamp(stats.last_check) : 'Never'}</div>
                         </div>
                         ${account.bet_amount_override ? `
-                            <div class="detail-item">
-                                <div class="detail-label">Bet Amount Override</div>
+                            <div class="flex flex-col gap-1">
+                                <div class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Bet Amount Override</div>
                                 <div>${formatCurrency(account.bet_amount_override)}</div>
                             </div>
                         ` : ''}
                         ${stats.last_trade ? `
-                            <div class="detail-item" style="grid-column: 1 / -1;">
-                                <div class="detail-label">Last Trade</div>
+                            <div class="flex flex-col gap-1" style="grid-column: 1 / -1;">
+                                <div class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Last Trade</div>
                                 <div style="font-size: 12px;">${escapeHtml(stats.last_trade.title || 'Unknown')}</div>
                             </div>
                         ` : ''}
@@ -327,7 +327,7 @@ async function loadAccounts() {
     } catch (error) {
         console.error('Error loading accounts:', error);
         document.getElementById('accountsList').innerHTML = `
-            <div class="empty-state">
+            <div class="flex flex-col items-center justify-center p-8 text-center text-muted-foreground bg-white/5 rounded-xl border border-white/5">
                 <p style="color: #f56565;">Error loading accounts</p>
             </div>
         `;
@@ -343,8 +343,8 @@ async function loadWithdrawals() {
 
         if (withdrawals.length === 0) {
             container.innerHTML = `
-                <div class="empty-state">
-                    <div class="empty-state-icon">💸</div>
+                <div class="flex flex-col items-center justify-center p-8 text-center text-muted-foreground bg-white/5 rounded-xl border border-white/5">
+                    <div class="text-4xl mb-4 opacity-50">💸</div>
                     <p>No withdrawals recorded</p>
                 </div>
             `;
@@ -355,7 +355,7 @@ async function loadWithdrawals() {
         withdrawals.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
 
         container.innerHTML = withdrawals.slice(0, 10).map(w => `
-            <div class="position-card">
+            <div class="flex flex-col p-4 rounded-lg bg-black/20 border border-white/5 mb-2 hover:bg-white/5 transition-colors gap-2">
                 <div style="display: flex; justify-content: space-between; align-items: center;">
                     <div>
                         <div style="font-weight: 600; color: #2d3748;">
@@ -683,7 +683,7 @@ async function searchWithdrawals() {
 
         if (data.withdrawals.length === 0) {
             resultsContainer.innerHTML = `
-                <div class="empty-state">
+                <div class="flex flex-col items-center justify-center p-8 text-center text-muted-foreground bg-white/5 rounded-xl border border-white/5">
                     <p>No withdrawals found in this date range</p>
                 </div>
             `;
@@ -707,7 +707,7 @@ async function searchWithdrawals() {
                 </div>
             </div>
             ${data.withdrawals.map(w => `
-                <div class="position-card">
+                <div class="flex flex-col p-4 rounded-lg bg-black/20 border border-white/5 mb-2 hover:bg-white/5 transition-colors gap-2">
                     <div style="display: flex; justify-content: space-between;">
                         <div>
                             <div style="font-weight: 600;">${formatCurrency(w.amount)}</div>
@@ -812,17 +812,22 @@ async function exportFullReport() {
 // ============================================================================
 
 function showModal(modalId) {
-    document.getElementById(modalId).style.display = 'block';
+    const el = document.getElementById(modalId);
+    el.classList.remove('hidden');
+    el.classList.add('flex');
 }
 
 function closeModal(modalId) {
-    document.getElementById(modalId).style.display = 'none';
+    const el = document.getElementById(modalId);
+    el.classList.add('hidden');
+    el.classList.remove('flex');
 }
 
 // Close modal when clicking outside
 window.onclick = function (event) {
     if (event.target.classList.contains('modal')) {
-        event.target.style.display = 'none';
+        event.target.classList.add('hidden');
+        event.target.classList.remove('flex');
     }
 }
 
