@@ -1,5 +1,8 @@
 // Global state
 let currentSellPosition = null;
+let currentWalletView = 'grid-5';
+window.allAccounts = [];
+window.accountStats = {};
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function () {
@@ -230,100 +233,14 @@ async function loadPositions() {
 async function loadAccounts() {
     try {
         const response = await fetch('/api/accounts');
-        const accounts = await response.json();
-
-        const container = document.getElementById('accountsList');
-
-        if (accounts.length === 0) {
-            container.innerHTML = `
-                <div class="flex flex-col items-center justify-center p-8 text-center text-muted-foreground bg-white/5 rounded-xl border border-white/5">
-                    <div class="text-4xl mb-4 opacity-50">👥</div>
-                    <p>No accounts configured. Add an account to start tracking trades.</p>
-                </div>
-            `;
-            return;
-        }
+        window.allAccounts = await response.json();
 
         // Load status to get per-account stats
         const statusResponse = await fetch('/api/status');
         const status = await statusResponse.json();
-        const accountStats = status.stats?.accounts || {};
+        window.accountStats = status.stats?.accounts || {};
 
-        container.innerHTML = accounts.map(account => {
-            const stats = accountStats[account.address] || {};
-            const enabled = account.enabled !== false;
-
-            return `
-                <div class="glass-panel rounded-xl p-5 h-full flex flex-col justify-between border border-white/10 transition-all hover:border-white/20 ${!enabled ? 'disabled' : ''}">
-                    <div class="flex items-start justify-between mb-4 pb-4 border-b border-white/10">
-                        <div class="flex-1 min-w-0 pr-4">
-                            <div class="font-display font-semibold text-lg text-foreground flex items-center gap-2 truncate" title="${escapeHtml(account.name || 'Unknown')}">
-                                ${escapeHtml(account.name || 'Unknown')}
-                                ${!enabled ? '<span class="inline-flex shrink-0 items-center justify-center rounded-full border border-destructive/50 bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive uppercase tracking-wider">Disabled</span>' : ''}
-                            </div>
-                            <div class="font-mono text-sm text-muted-foreground flex items-center gap-2 mt-1 truncate" title="${account.address}">
-                                <span>${account.address.substring(0, 6)}...${account.address.substring(account.address.length - 4)}</span>
-                                <span style="cursor: pointer; opacity: 0.7;" onclick="copyToClipboard('${account.address}')" title="Copy Address">📋</span>
-                            </div>
-                            ${(account.pnl !== undefined || account.winRate !== undefined) ? `
-                                <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                                    <div class="flex items-center gap-1.5 text-sm bg-black/20 px-2 py-1 rounded-md border border-white/5">
-                                        <span>PnL:</span>
-                                        <span class="${account.pnl >= 0 ? 'positive' : 'negative'}">$${Math.abs(account.pnl || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
-                                    </div>
-                                    <div class="flex items-center gap-1.5 text-sm bg-black/20 px-2 py-1 rounded-md border border-white/5">
-                                        <span>WinRate:</span>
-                                        <span style="color: #fff;">${((account.winRate || 0) * 100).toFixed(0)}%</span>
-                                    </div>
-                                    <div class="flex items-center gap-1.5 text-sm bg-black/20 px-2 py-1 rounded-md border border-white/5">
-                                        <span>Rank:</span>
-                                        <span style="color: #fff;">#${account.rank || '?'}</span>
-                                    </div>
-                                </div>
-                            ` : ''}
-                            ${(account.tags && account.tags.length > 0) ? `
-                                <div class="flex flex-wrap gap-2 mt-3">
-                                    ${account.tags.map(tag => `<span class="inline-flex items-center rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs font-medium text-foreground">${escapeHtml(tag)}</span>`).join('')}
-                                </div>
-                            ` : ''}
-                        </div>
-                        <div class="flex flex-col items-end gap-3 shrink-0">
-                            <label class="toggle-switch">
-                                <input type="checkbox" ${enabled ? 'checked' : ''} 
-                                    onchange="toggleAccount('${account.address}', this.checked)">
-                                <span class="slider"></span>
-                            </label>
-                            <button class="inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 h-8 px-3" onclick="removeAccount('${account.address}')">
-                                Remove
-                            </button>
-                        </div>
-                    </div>
-                    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4">
-                        <div class="flex flex-col gap-1">
-                            <div class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Trades Copied</div>
-                            <div>${stats.trades_copied || 0}</div>
-                        </div>
-                        <div class="flex flex-col gap-1">
-                            <div class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Last Check</div>
-                            <div>${stats.last_check ? formatTimestamp(stats.last_check) : 'Never'}</div>
-                        </div>
-                        ${account.bet_amount_override ? `
-                            <div class="flex flex-col gap-1">
-                                <div class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Bet Amount Override</div>
-                                <div>${formatCurrency(account.bet_amount_override)}</div>
-                            </div>
-                        ` : ''}
-                        ${stats.last_trade ? `
-                            <div class="flex flex-col gap-1" style="grid-column: 1 / -1;">
-                                <div class="text-xs font-medium text-muted-foreground uppercase tracking-wider">Last Trade</div>
-                                <div style="font-size: 12px;">${escapeHtml(stats.last_trade.title || 'Unknown')}</div>
-                            </div>
-                        ` : ''}
-                    </div>
-                </div>
-            `;
-        }).join('');
-
+        renderAccounts();
     } catch (error) {
         console.error('Error loading accounts:', error);
         document.getElementById('accountsList').innerHTML = `
@@ -332,6 +249,141 @@ async function loadAccounts() {
             </div>
         `;
     }
+}
+
+function filterWallets() {
+    renderAccounts();
+}
+
+function setWalletView(viewClass) {
+    currentWalletView = viewClass;
+
+    // Update button states
+    document.querySelectorAll('.view-btn').forEach(btn => {
+        if (btn.dataset.view === viewClass) {
+            btn.classList.remove('hover:bg-white/10', 'text-muted-foreground');
+            btn.classList.add('bg-white/10', 'text-foreground');
+        } else {
+            btn.classList.add('hover:bg-white/10', 'text-muted-foreground');
+            btn.classList.remove('bg-white/10', 'text-foreground');
+        }
+    });
+
+    renderAccounts();
+}
+
+function renderAccounts() {
+    const container = document.getElementById('accountsList');
+    const badge = document.getElementById('walletCountBadge');
+    const searchInput = document.getElementById('walletSearchInput');
+    const searchTerm = searchInput ? searchInput.value.toLowerCase() : '';
+
+    // Filter
+    const filteredAccounts = window.allAccounts.filter(account => {
+        const nameMatch = (account.name || '').toLowerCase().includes(searchTerm);
+        const addrMatch = (account.address || '').toLowerCase().includes(searchTerm);
+        const tagMatch = (account.tags || []).some(t => t.toLowerCase().includes(searchTerm));
+        return nameMatch || addrMatch || tagMatch;
+    });
+
+    if (badge) badge.textContent = `(${filteredAccounts.length} targets)`;
+
+    if (filteredAccounts.length === 0) {
+        container.className = "grid grid-cols-1";
+        container.innerHTML = `
+            <div class="flex flex-col items-center justify-center p-8 text-center text-muted-foreground bg-white/5 rounded-xl border border-white/5">
+                <div class="text-4xl mb-4 opacity-50">👥</div>
+                <p>${searchTerm ? 'No accounts match your search.' : 'No accounts configured. Add an account to start tracking trades.'}</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Apply grid class based on currentWalletView
+    let gridClass = "grid gap-4 ";
+    if (currentWalletView === 'grid-3') gridClass += "grid-cols-1 md:grid-cols-2 lg:grid-cols-3";
+    else if (currentWalletView === 'grid-compact') gridClass = "flex flex-col gap-2";
+    else gridClass += "grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6"; // Default/grid-5
+
+    container.className = gridClass;
+
+    const accountStats = window.accountStats;
+
+    container.innerHTML = filteredAccounts.map(account => {
+        const stats = accountStats[account.address] || {};
+        const enabled = account.enabled !== false;
+
+        return `
+            <div class="glass-panel rounded-xl p-5 h-full flex flex-col justify-between border border-white/10 transition-all hover:border-white/20 ${!enabled ? 'disabled' : ''}">
+                <div class="flex items-start justify-between mb-4 pb-4 border-b border-white/10">
+                    <div class="flex-1 min-w-0 pr-4">
+                        <div class="font-display font-semibold text-lg text-foreground flex items-center gap-2 truncate" title="${escapeHtml(account.name || 'Unknown')}">
+                            ${escapeHtml(account.name || 'Unknown')}
+                            ${!enabled ? '<span class="inline-flex shrink-0 items-center justify-center rounded-full border border-destructive/50 bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive uppercase tracking-wider">Disabled</span>' : ''}
+                        </div>
+                        <div class="font-mono text-sm text-muted-foreground flex items-center gap-2 mt-1 truncate" title="${account.address}">
+                            <span>${account.address.substring(0, 6)}...${account.address.substring(account.address.length - 4)}</span>
+                            <span style="cursor: pointer; opacity: 0.7;" onclick="copyToClipboard('${account.address}')" title="Copy Address">📋</span>
+                        </div>
+                        ${(account.pnl !== undefined || account.winRate !== undefined) ? `
+                            <div class="flex flex-wrap items-center gap-2 mt-4">
+                                <div class="flex items-center gap-1.5 text-sm bg-black/20 px-2 py-1 rounded-md border border-white/5 whitespace-nowrap">
+                                    <span class="text-muted-foreground">PnL:</span>
+                                    <span class="font-medium ${account.pnl >= 0 ? 'positive' : 'negative'}">$${Math.abs(account.pnl || 0).toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</span>
+                                </div>
+                                <div class="flex items-center gap-1.5 text-sm bg-black/20 px-2 py-1 rounded-md border border-white/5 whitespace-nowrap">
+                                    <span class="text-muted-foreground">WinRate:</span>
+                                    <span class="font-medium text-white">${((account.winRate || 0) * 100).toFixed(0)}%</span>
+                                </div>
+                                <div class="flex items-center gap-1.5 text-sm bg-black/20 px-2 py-1 rounded-md border border-white/5 whitespace-nowrap">
+                                    <span class="text-muted-foreground">Rank:</span>
+                                    <span class="font-medium text-white">#${account.rank || '?'}</span>
+                                </div>
+                            </div>
+                        ` : ''}
+                        ${(account.tags && account.tags.length > 0) ? `
+                            <div class="flex flex-wrap gap-2 mt-3">
+                                ${account.tags.map(tag => `<span class="inline-flex items-center rounded-md border border-white/10 bg-white/5 px-2 py-1 text-xs font-medium text-foreground whitespace-nowrap">${escapeHtml(tag)}</span>`).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                    <div class="flex flex-col items-end gap-3 shrink-0">
+                        <label class="toggle-switch">
+                            <input type="checkbox" ${enabled ? 'checked' : ''} 
+                                onchange="toggleAccount('${account.address}', this.checked)">
+                            <span class="slider"></span>
+                        </label>
+                        <button class="inline-flex items-center justify-center rounded-md h-8 w-8 transition-colors text-muted-foreground hover:bg-destructive hover:text-destructive-foreground shadow-sm" onclick="removeAccount('${account.address}')" title="Remove Target">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex flex-wrap gap-x-4 gap-y-3 mt-auto pt-2 text-xs">
+                    <div class="flex flex-col gap-1 min-w-[80px]">
+                        <div class="font-medium text-muted-foreground uppercase tracking-wider">Copied</div>
+                        <div class="font-mono">${stats.trades_copied || 0}</div>
+                    </div>
+                    <div class="flex flex-col gap-1 min-w-[100px]">
+                        <div class="font-medium text-muted-foreground uppercase tracking-wider">Last Check</div>
+                        <div class="font-mono text-[11px]">${stats.last_check ? formatTimestamp(stats.last_check) : 'Never'}</div>
+                    </div>
+                    ${account.bet_amount_override ? `
+                        <div class="flex flex-col gap-1 min-w-[100px]">
+                            <div class="font-medium text-muted-foreground uppercase tracking-wider">Bet Override</div>
+                            <div class="font-mono">${formatCurrency(account.bet_amount_override)}</div>
+                        </div>
+                    ` : ''}
+                    ${stats.last_trade ? `
+                        <div class="flex flex-col gap-1 w-full mt-1 border-t border-white/5 pt-2">
+                            <div class="font-medium text-muted-foreground uppercase tracking-wider">Last Trade Context</div>
+                            <div class="text-[11px] text-foreground/80 line-clamp-2">${escapeHtml(stats.last_trade.title || 'Unknown')}</div>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+    }).join('');
+
 }
 
 async function loadWithdrawals() {
