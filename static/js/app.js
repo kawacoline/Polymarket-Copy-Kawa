@@ -3,6 +3,12 @@ let currentSellPosition = null;
 let currentWalletView = 'grid-5';
 window.allAccounts = [];
 window.accountStats = {};
+window.expandedNames = window.expandedNames || {};
+
+function toggleWalletName(address) {
+    window.expandedNames[address] = !window.expandedNames[address];
+    renderAccounts();
+}
 
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function () {
@@ -312,14 +318,25 @@ function renderAccounts() {
     container.innerHTML = filteredAccounts.map(account => {
         const stats = accountStats[account.address] || {};
         const enabled = account.enabled !== false;
+        const fullName = account.name || 'Unknown';
+        const isExpanded = window.expandedNames[account.address];
+        const needsTruncation = fullName.length > 20;
+        const displayName = (!needsTruncation || isExpanded) ? fullName : fullName.substring(0, 18) + '...';
 
         return `
             <div class="glass-panel rounded-xl p-5 h-full flex flex-col justify-between border border-white/10 transition-all hover:border-white/20 ${!enabled ? 'disabled' : ''}">
                 <div class="flex items-start justify-between mb-4 pb-4 border-b border-white/10">
                     <div class="flex-1 min-w-0 pr-4">
-                        <div class="font-display font-semibold text-lg text-foreground flex items-center gap-2 truncate" title="${escapeHtml(account.name || 'Unknown')}">
-                            ${escapeHtml(account.name || 'Unknown')}
-                            ${!enabled ? '<span class="inline-flex shrink-0 items-center justify-center rounded-full border border-destructive/50 bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive uppercase tracking-wider">Disabled</span>' : ''}
+                        <div class="font-display font-semibold text-lg text-foreground flex items-start gap-2" title="${escapeHtml(fullName)}">
+                            <span class="${isExpanded ? 'break-words' : 'truncate'} block">${escapeHtml(displayName)}</span>
+                            ${needsTruncation ? `
+                                <button class="shrink-0 p-1 hover:bg-white/10 rounded-md text-muted-foreground transition-colors mt-0.5" onclick="toggleWalletName('${account.address}')" title="${isExpanded ? 'Show Less' : 'Show Full Name'}">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                        ${isExpanded ? '<polyline points="18 15 12 9 6 15"/>' : '<polyline points="6 9 12 15 18 9"/>'}
+                                    </svg>
+                                </button>
+                            ` : ''}
+                            ${!enabled ? '<span class="inline-flex shrink-0 items-center justify-center rounded-full border border-destructive/50 bg-destructive/10 px-2 py-0.5 text-[10px] font-semibold text-destructive uppercase tracking-wider mt-0.5">Disabled</span>' : ''}
                         </div>
                         <div class="font-mono text-sm text-muted-foreground flex items-center gap-2 mt-1 truncate" title="${account.address}">
                             <span>${account.address.substring(0, 6)}...${account.address.substring(account.address.length - 4)}</span>
