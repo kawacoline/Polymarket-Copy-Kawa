@@ -7461,6 +7461,89 @@
         [data-side=right][data-state=collapsed] .\[\[data-side\=right\]\[data-state\=collapsed\]_\&\]\:cursor-w-resize {
             cursor: w-resize
         }
+
+        /* SUPPLEMENTAL MODIFICATIONS: Grid tracking columns missing from original CSS */
+        .grid-cols-2 {
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .grid-cols-3 {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+        }
+
+        .grid-cols-4 {
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .grid-cols-5 {
+            grid-template-columns: repeat(5, minmax(0, 1fr));
+        }
+
+        .grid-cols-6 {
+            grid-template-columns: repeat(6, minmax(0, 1fr));
+        }
+
+        @media (min-width: 640px) {
+            .sm\:grid-cols-3 {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            .sm\:grid-cols-4 {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+        }
+
+        @media (min-width: 768px) {
+            .md\:grid-cols-3 {
+                grid-template-columns: repeat(3, minmax(0, 1fr));
+            }
+
+            .md\:grid-cols-4 {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+
+            .md\:grid-cols-5 {
+                grid-template-columns: repeat(5, minmax(0, 1fr));
+            }
+        }
+
+        @media (min-width: 1024px) {
+            .lg\:grid-cols-4 {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+
+            .lg\:grid-cols-5 {
+                grid-template-columns: repeat(5, minmax(0, 1fr));
+            }
+
+            .lg\:grid-cols-6 {
+                grid-template-columns: repeat(6, minmax(0, 1fr));
+            }
+        }
+
+        @media (min-width: 1280px) {
+            .xl\:grid-cols-4 {
+                grid-template-columns: repeat(4, minmax(0, 1fr));
+            }
+
+            .xl\:grid-cols-5 {
+                grid-template-columns: repeat(5, minmax(0, 1fr));
+            }
+
+            .xl\:grid-cols-6 {
+                grid-template-columns: repeat(6, minmax(0, 1fr));
+            }
+        }
+
+        @media (min-width: 1536px) {
+            .\32 xl\:grid-cols-5 {
+                grid-template-columns: repeat(5, minmax(0, 1fr));
+            }
+
+            .\32 xl\:grid-cols-6 {
+                grid-template-columns: repeat(6, minmax(0, 1fr));
+            }
+        }
     </style>
 </head>
 
@@ -7542,7 +7625,8 @@
                             <path d="M2 8.82a15 15 0 0 1 20 0"></path>
                             <path d="M5 12.859a10 10 0 0 1 14 0"></path>
                             <path d="M8.5 16.429a5 5 0 0 1 7 0"></path>
-                        </svg></div>
+                        </svg>
+                    </div>
                     <div class="flex flex-col"><span
                             class="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Feed</span><span
                             class="text-sm font-mono font-medium text-foreground"><span
@@ -7557,7 +7641,8 @@
                             <path
                                 d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2">
                             </path>
-                        </svg></div>
+                        </svg>
+                    </div>
                     <div class="flex flex-col"><span
                             class="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Events
                             (session)</span><span class="text-sm font-mono font-medium text-foreground">57,452</span>
@@ -7573,7 +7658,8 @@
                             <rect width="20" height="8" x="2" y="14" rx="2" ry="2"></rect>
                             <line x1="6" x2="6.01" y1="6" y2="6"></line>
                             <line x1="6" x2="6.01" y1="18" y2="18"></line>
-                        </svg></div>
+                        </svg>
+                    </div>
                     <div class="flex flex-col"><span
                             class="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Wallets
                             Found</span><span class="text-sm font-mono font-medium text-foreground">47,014</span></div>
@@ -7587,7 +7673,8 @@
                             <ellipse cx="12" cy="5" rx="9" ry="3"></ellipse>
                             <path d="M3 5V19A9 3 0 0 0 21 19V5"></path>
                             <path d="M3 12A9 3 0 0 0 21 12"></path>
-                        </svg></div>
+                        </svg>
+                    </div>
                     <div class="flex flex-col"><span
                             class="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">DB
                             Records</span><span class="text-sm font-mono font-medium text-foreground">270,734</span>
@@ -7601,7 +7688,8 @@
                             class="lucide lucide-clock h-4 w-4 text-muted-foreground">
                             <circle cx="12" cy="12" r="10"></circle>
                             <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg></div>
+                        </svg>
+                    </div>
                     <div class="flex flex-col"><span
                             class="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Last
                             Trade</span><span class="text-sm font-mono font-medium text-foreground">3 minutes ago</span>
