@@ -254,7 +254,7 @@ async function loadAccounts() {
             const enabled = account.enabled !== false;
 
             return `
-                <div class="glass-panel rounded-xl p-5 mb-4 border border-white/10 transition-all hover:border-white/20 ${!enabled ? 'disabled' : ''}">
+                <div class="glass-panel rounded-xl p-5 h-full flex flex-col justify-between border border-white/10 transition-all hover:border-white/20 ${!enabled ? 'disabled' : ''}">
                     <div class="flex items-start justify-between mb-4 pb-4 border-b border-white/10">
                         <div class="flex-1 min-w-0 pr-4">
                             <div class="font-display font-semibold text-lg text-foreground flex items-center gap-2 truncate" title="${escapeHtml(account.name || 'Unknown')}">

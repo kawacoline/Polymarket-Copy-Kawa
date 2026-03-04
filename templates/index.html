@@ -3177,6 +3177,43 @@
 </div>
 </div>
 </header>
+        <!-- Engine Controls (Pinned) -->
+        <div class="glass-header w-full px-6 py-3 sticky top-[73px] z-40 flex items-center justify-between gap-4 border-b border-white/5 backdrop-blur-xl bg-background/90 shadow-sm transition-all">
+            <div class="flex items-center gap-4">
+                <div class="text-xs font-bold text-muted-foreground uppercase tracking-widest hidden md:block">ENGINE EXECUTION</div>
+                <div class="w-px h-4 bg-white/10 hidden md:block"></div>
+                
+                <button id="startBtn" class="inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors h-8 px-4 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/50 shadow shadow-emerald-500/20 mr-2" onclick="startBot()">
+                    <span class="mr-2">▶</span> START
+                </button>
+                <button id="stopBtn" class="inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors h-8 px-4 border border-input bg-transparent shadow-sm hover:bg-accent hover:text-accent-foreground" onclick="stopBot()" disabled>
+                    <span class="mr-2">⏸</span> PAUSE
+                </button>
+                <button id="panicSellBtn" class="inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors h-8 px-4 bg-destructive text-destructive-foreground shadow hover:bg-destructive/90 ml-2" onclick="showModal('panicSellModal')">
+                    <span class="mr-2">🚨</span> PANIC
+                </button>
+            </div>
+            
+            <div class="flex items-center gap-4">
+                <div class="flex items-center gap-2">
+                    <span id="statusIndicator" class="dot stopped"></span>
+                    <span id="statusText" class="text-xs font-semibold tracking-wide">OFFLINE</span>
+                </div>
+                <div class="w-px h-4 bg-white/10"></div>
+                <div class="flex items-center gap-2 text-xs">
+                    <span style="color: var(--text-dim);">DRY RUN:</span>
+                    <label class="toggle-switch transform scale-75 origin-left" style="margin:0;">
+                        <input type="checkbox" id="dryRunToggle" onchange="toggleDryRun()" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+                <div class="w-px h-4 bg-white/10 hidden sm:block"></div>
+                <button class="inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors h-8 px-3 border border-input bg-transparent shadow-sm hover:bg-accent hover:text-accent-foreground hidden sm:inline-flex" onclick="refreshAll()">
+                    🔄
+                </button>
+            </div>
+        </div>
+        
 
         <!-- Dynamic Stats Hero -->
         <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4 mb-8">
@@ -3204,39 +3241,6 @@
 
         <!-- Main Workspace -->
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-            <!-- Execution Controls -->
-            <div class="glass-panel rounded-xl p-6 relative overflow-hidden">
-                <div class="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 flex items-center justify-between">ENGINE EXECUTION</div>
-                <div class="flex flex-col sm:flex-row flex-wrap gap-3">
-                    <button id="startBtn" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2 bg-primary text-primary-foreground shadow hover:bg-primary/90" onclick="startBot()">
-                        <span>▶</span> Start Engine
-                    </button>
-                    <button id="stopBtn" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2 border border-input bg-transparent shadow-sm hover:bg-accent hover:text-accent-foreground" onclick="stopBot()" disabled>
-                        <span>⏸</span> Pause
-                    </button>
-                    <button id="panicSellBtn" class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2 bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90" onclick="showPanicSellModal()">
-                        <span>🚨</span> Panic Sell All
-                    </button>
-                    <button class="inline-flex items-center justify-center rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 disabled:pointer-events-none disabled:opacity-50 h-9 px-4 py-2 border border-input bg-transparent shadow-sm hover:bg-accent hover:text-accent-foreground" onclick="refreshAll()">
-                        <span>🔄</span> Refresh
-                    </button>
-                </div>
-
-                <div class="flex flex-col gap-3 p-4 rounded-lg bg-black/20 border border-white/5" style="margin-top: 24px;">
-                    <div class="flex items-center justify-between text-sm">
-                        <span id="statusIndicator" class="dot stopped"></span>
-                        <span id="statusText">SYSTEM OFFLINE</span>
-                    </div>
-                    <div class="flex items-center justify-between text-sm">
-                        <span style="color: var(--text-dim); margin-right: 8px;">DRY RUN:</span>
-                        <label class="toggle-switch">
-                            <input type="checkbox" id="dryRunToggle" onchange="toggleDryRun()" checked>
-                            <span class="slider"></span>
-                        </label>
-                    </div>
-                </div>
-            </div>
-
             <!-- Export Actions -->
             <div class="glass-panel rounded-xl p-6 relative overflow-hidden">
                 <div class="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 flex items-center justify-between">REPORTS</div>
@@ -3266,7 +3270,7 @@
                     + Add Target
                 </button>
             </div>
-            <div id="accountsList" class="accounts-grid">
+            <div id="accountsList" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <div class="flex flex-col items-center justify-center py-12 text-muted-foreground space-y-4">
                     <div class="spinner"></div>
                     <p>Syncing target addresses...</p>
