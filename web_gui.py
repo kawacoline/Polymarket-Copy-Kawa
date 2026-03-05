@@ -305,6 +305,38 @@ def get_status():
                 "tracked_accounts": 0,
                 "enabled_accounts": 0
             }
+            
+        # Add dynamic header stats
+        try:
+            accounts = load_accounts()
+            wallets_found = len(accounts)
+        except:
+            wallets_found = 0
+            
+        db_records = 0
+        last_trade_time = None
+        try:
+            conn = sqlite3.connect(DB_PATH)
+            cursor = conn.cursor()
+            cursor.execute("SELECT COUNT(*) FROM trades")
+            row = cursor.fetchone()
+            if row:
+                db_records = row[0]
+                
+            cursor.execute("SELECT timestamp FROM trades ORDER BY timestamp DESC LIMIT 1")
+            row = cursor.fetchone()
+            if row:
+                last_trade_time = row[0]
+            conn.close()
+        except:
+            pass
+            
+        events_session = status.get("stats", {}).get("total_copied", 0)
+        
+        status["wallets_found"] = wallets_found
+        status["db_records"] = db_records
+        status["last_trade_time"] = last_trade_time
+        status["events_session"] = events_session
         
         return jsonify(status)
     

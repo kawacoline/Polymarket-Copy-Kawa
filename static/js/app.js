@@ -120,7 +120,32 @@ async function loadStatus() {
         const trackedCount = status.tracked_accounts || 0;
         const enabledCount = status.enabled_accounts || 0;
         const badge = document.getElementById('accountsBadge');
-        badge.textContent = `${enabledCount} of ${trackedCount} Accounts Active`;
+        if (badge) badge.textContent = `${enabledCount} of ${trackedCount} Accounts Active`;
+
+        // Update header stats
+        const walletsStat = document.getElementById('header-stat-wallets');
+        if (walletsStat) {
+            walletsStat.textContent = (status.wallets_found || 0).toLocaleString();
+        }
+
+        const dbStat = document.getElementById('header-stat-db');
+        if (dbStat) {
+            dbStat.textContent = (status.db_records || 0).toLocaleString();
+        }
+
+        const eventsStat = document.getElementById('header-stat-events');
+        if (eventsStat) {
+            eventsStat.textContent = (status.events_session || 0).toLocaleString();
+        }
+
+        const lastTradeStat = document.getElementById('header-stat-last-trade');
+        if (lastTradeStat) {
+            if (status.last_trade_time) {
+                lastTradeStat.textContent = formatTimestamp(status.last_trade_time * 1000).toLowerCase();
+            } else {
+                lastTradeStat.textContent = '--';
+            }
+        }
 
     } catch (error) {
         console.error('Error loading status:', error);
