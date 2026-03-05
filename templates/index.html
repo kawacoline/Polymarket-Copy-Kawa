@@ -7571,7 +7571,7 @@
                         <div class="flex items-center gap-4 flex-wrap">
                             <h1 class="text-xl font-bold font-display text-gradient">⚡ COMMAND CENTER</h1>
                             <div class="flex items-center gap-2 border-l border-white/10 pl-4">
-                                <a href="#accountsList"
+                                <a href="#whales-section"
                                     class="inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors hover:bg-white/10 text-muted-foreground hover:text-foreground h-8 px-2"
                                     title="Go to Whale Tracking">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
@@ -7583,7 +7583,7 @@
                                         <path d="M16 3.13a4 4 0 0 1 0 7.75" />
                                     </svg> Whales
                                 </a>
-                                <a href="#activePositions"
+                                <a href="#positions-section"
                                     class="inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors hover:bg-white/10 text-muted-foreground hover:text-foreground h-8 px-2"
                                     title="Go to Active Positions">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
@@ -7596,7 +7596,7 @@
                                         <path d="M18 10L18 16" />
                                     </svg> Positions
                                 </a>
-                                <a href="#withdrawalsList"
+                                <a href="#withdrawals-section"
                                     class="inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors hover:bg-white/10 text-muted-foreground hover:text-foreground h-8 px-2"
                                     title="Go to Withdrawals">
                                     <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
@@ -7800,7 +7800,8 @@
         </div>
 
         <!-- Tracked Accounts -->
-        <div class="glass-panel rounded-xl p-6 relative overflow-hidden" style="margin-bottom: 32px;">
+        <div id="whales-section" class="glass-panel rounded-xl p-6 relative overflow-hidden scroll-m-24"
+            style="margin-bottom: 32px;">
             <div
                 class="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 flex flex-col xl:flex-row xl:items-center justify-between gap-4">
                 <div class="flex items-center gap-2 shrink-0">
@@ -7893,7 +7894,8 @@
         </div>
 
         <!-- Position Monitoring -->
-        <div class="glass-panel rounded-xl p-6 relative overflow-hidden" style="margin-bottom: 32px;">
+        <div id="positions-section" class="glass-panel rounded-xl p-6 relative overflow-hidden scroll-m-24"
+            style="margin-bottom: 32px;">
             <div
                 class="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 flex items-center justify-between">
                 ACTIVE POSITIONS</div>
@@ -7906,7 +7908,7 @@
         </div>
 
         <!-- Withdrawal & Cashout Log -->
-        <div class="glass-panel rounded-xl p-6 relative overflow-hidden">
+        <div id="withdrawals-section" class="glass-panel rounded-xl p-6 relative overflow-hidden scroll-m-24">
             <div
                 class="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 flex items-center justify-between">
                 WITHDRAWAL LOG
