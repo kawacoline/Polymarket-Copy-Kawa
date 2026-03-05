@@ -7568,8 +7568,49 @@
                         </div>
                     </div>
                     <div>
-                        <h1 class="text-xl font-bold font-display text-gradient">⚡ COMMAND CENTER</h1>
-                        <p class="text-xs text-muted-foreground font-mono">Polymarket Multi-Account Copy Trade Engine
+                        <div class="flex items-center gap-4 flex-wrap">
+                            <h1 class="text-xl font-bold font-display text-gradient">⚡ COMMAND CENTER</h1>
+                            <div class="flex items-center gap-2 border-l border-white/10 pl-4">
+                                <a href="#accountsList"
+                                    class="inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors hover:bg-white/10 text-muted-foreground hover:text-foreground h-8 px-2"
+                                    title="Go to Whale Tracking">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round" class="mr-1.5">
+                                        <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
+                                        <circle cx="9" cy="7" r="4" />
+                                        <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+                                        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+                                    </svg> Whales
+                                </a>
+                                <a href="#activePositions"
+                                    class="inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors hover:bg-white/10 text-muted-foreground hover:text-foreground h-8 px-2"
+                                    title="Go to Active Positions">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round" class="mr-1.5">
+                                        <path d="M2 20h20" />
+                                        <path d="M14 6L14 16" />
+                                        <path d="M6 10L6 16" />
+                                        <path d="M10 14L10 16" />
+                                        <path d="M18 10L18 16" />
+                                    </svg> Positions
+                                </a>
+                                <a href="#withdrawalsList"
+                                    class="inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors hover:bg-white/10 text-muted-foreground hover:text-foreground h-8 px-2"
+                                    title="Go to Withdrawals">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round" class="mr-1.5">
+                                        <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                                        <polyline points="7 10 12 15 17 10" />
+                                        <line x1="12" x2="12" y1="15" y2="3" />
+                                    </svg> Withdrawals
+                                </a>
+                            </div>
+                        </div>
+                        <p class="text-xs text-muted-foreground font-mono mt-1">Polymarket Multi-Account Copy Trade
+                            Engine
                         </p>
                     </div>
                 </div>
@@ -7736,7 +7777,7 @@
             <!-- Export Actions -->
             <div class="glass-panel rounded-xl p-6 relative overflow-hidden">
                 <div
-                    class="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 flex items-center justify-between">
+                    class="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 flex items-center justify-center text-center">
                     REPORTS</div>
                 <div style="display: flex; flex-direction: column; gap: 8px;">
                     <button
