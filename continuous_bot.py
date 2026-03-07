@@ -15,6 +15,7 @@ PRIVATE_KEY = os.getenv("PRIVATE_KEY")
 SIGNATURE_TYPE = int(os.getenv("SIGNATURE_TYPE", 1))
 BET_AMOUNT = float(os.getenv("BET_AMOUNT", 2.0))
 MAX_TRADES_PER_SESSION = int(os.getenv("MAX_TRADES_PER_SESSION", 3))
+MAX_TRADES_PER_EVENT = int(os.getenv("MAX_TRADES_PER_EVENT", 1))
 
 DATA_API = "https://data-api.polymarket.com"
 CLOB_API = "https://clob.polymarket.com"
@@ -449,6 +450,32 @@ class CopyTradingBot:
             if self.trades_this_session >= MAX_TRADES_PER_SESSION:
                 print(f"  [SESSION LIMIT] Reached max trades ({MAX_TRADES_PER_SESSION}). Skipping {name}'s trade on {title}.")
                 return
+            
+            # EVENT LIMIT CHECK
+            try:
+                import sqlite3
+                from pathlib import Path
+                db_path = Path("betting_history.db")
+                if db_path.exists():
+                    conn = sqlite3.connect(db_path)
+                    cursor = conn.cursor()
+                    cursor.execute(
+                        "SELECT COUNT(*) FROM trades WHERE condition_id = ? AND outcome_index = ? AND side = 'BUY'",
+                        (condition_id, outcome_index)
+                    )
+                    row = cursor.fetchone()
+                    event_trade_count = row[0] if row else 0
+                    conn.close()
+                    
+                    if event_trade_count >= MAX_TRADES_PER_EVENT:
+                        print(f"  [EVENT LIMIT] Already traded '{title}' ({outcome}) {event_trade_count} times. Limit is {MAX_TRADES_PER_EVENT}. Skipping.")
+                        if trade_id and trade_id not in self.seen_trades:
+                            self.seen_trades.add(trade_id)
+                            self.save_seen_trades()
+                        return
+            except Exception as e:
+                import traceback; traceback.print_exc()
+                print(f"  Warning: Could not check event limit: {e}")
             
             # This is a new trade to copy!
             log_msg = f"[{datetime.now().strftime('%H:%M:%S')}] 📋 New trade from {name}:"
