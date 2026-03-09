@@ -6,6 +6,52 @@
 const { fetchPositions, fetchActivity, sleep } = require('./api');
 
 /**
+ * Heuristic to calculate win rate based on buy/sell price difference
+ * for active traders who don't hold to redemption.
+ */
+function calculateProfitWinRate(activity) {
+    const trades = activity.filter(a => a.type === 'TRADE');
+    if (trades.length === 0) return 0;
+
+    // Group by market+outcome to find buy/sell pairs
+    const marketGroups = {};
+    for (const t of trades) {
+        const key = `${t.slug}_${t.outcome}`;
+        if (!marketGroups[key]) marketGroups[key] = [];
+        marketGroups[key].push(t);
+    }
+
+    let wins = 0;
+    let totalClosed = 0;
+
+    for (const key in marketGroups) {
+        const marketTrades = marketGroups[key].sort((a, b) => a.timestamp - b.timestamp);
+
+        // Simplified Logic: If last trade in this market was a SELL, 
+        // compare its price to the first BUY in the sequence.
+        const buys = marketTrades.filter(t => t.side === 'BUY');
+        const sells = marketTrades.filter(t => t.side === 'SELL');
+
+        if (buys.length > 0 && sells.length > 0) {
+            const avgBuyPrice = buys.reduce((sum, t) => sum + (parseFloat(t.price) || 0), 0) / buys.length;
+            const lastSellPrice = parseFloat(sells[sells.length - 1].price) || 0;
+
+            if (lastSellPrice > avgBuyPrice) {
+                wins++;
+            }
+            totalClosed++;
+        }
+    }
+
+    // Add Redemptions to the mix (they are definitely wins)
+    const redeems = activity.filter(a => a.type === 'REDEEM');
+    wins += redeems.length;
+    totalClosed += redeems.length;
+
+    return totalClosed > 0 ? wins / totalClosed : 0;
+}
+
+/**
  * Analyze a single wallet: fetch positions + activity, compute stats.
  */
 async function analyzeWallet(wallet) {
@@ -45,18 +91,17 @@ async function analyzeWallet(wallet) {
     const totalRedeems = redeems.length;
     const totalSells = sells.length;
 
-    // Closed Positions = Redeems + Sells
-    const totalClosedPositions = totalRedeems + totalSells;
+    // Win rate approximation
+    const winRate = calculateProfitWinRate(activity);
 
-    // Win rate approximation: redeems / (redeems + sells) if we have data
-    // NOTE: This is a conservative estimate based on REDEEM events.
-    // Active traders who sell before expiry will show a lower win rate here.
-    const winRate = totalClosedPositions > 0
-        ? totalRedeems / totalClosedPositions
-        : 0;
+    // Detect high-performance active traders (Low redemptions but high trade activity)
+    const isActiveWhale = (wallet.pnl > 5000 && totalTrades > 20);
 
-    // Detect high-performance active traders (Low redemptions but high PNL)
-    const isActiveWhale = (wallet.pnl > 5000 && winRate < 0.2 && totalTrades > 20);
+    // Auto-tagging
+    if (!wallet.tags) wallet.tags = [];
+    if (isActiveWhale && !wallet.tags.includes('ACTIVE_WHALE')) {
+        wallet.tags.push('ACTIVE_WHALE');
+    }
 
     // Average trade size (USDC)
     const tradeSizes = trades.map(t => parseFloat(t.usdcSize) || 0).filter(s => s > 0);
