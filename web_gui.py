@@ -662,6 +662,11 @@ def api_add_account():
             accounts.append({
                 "address": address,
                 "name": name or address[:10] + "...",
+                "rank": 9999,
+                "score": 0,
+                "winRate": 0,
+                "pnl": 0,
+                "tags": ["MANUAL"],
                 "enabled": True,
                 "bet_amount_override": bet_amount,
                 "added_date": datetime.now(timezone.utc).isoformat()

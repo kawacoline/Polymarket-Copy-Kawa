@@ -72,22 +72,22 @@ if header_extract:
                 <div class="w-px h-8 bg-white/10 hidden sm:block"></div>
                 <div class="flex items-center gap-2" data-testid="status-events-processed">
                     <div class="flex h-7 w-7 items-center justify-center rounded-full bg-white/5 border border-white/5"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-activity h-4 w-4 text-warning"><path d="M22 12h-2.48a2 2 0 0 0-1.93 1.46l-2.35 8.36a.25.25 0 0 1-.48 0L9.24 2.18a.25.25 0 0 0-.48 0l-2.35 8.36A2 2 0 0 1 4.49 12H2"></path></svg></div>
-                    <div class="flex flex-col"><span class="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Events (session)</span><span class="text-sm font-mono font-medium text-foreground">57,452</span></div>
+                    <div class="flex flex-col"><span class="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Events (session)</span><span class="text-sm font-mono font-medium text-foreground"><span id="header-stat-events">--</span></span></div>
                 </div>
                 <div class="w-px h-8 bg-white/10 hidden sm:block"></div>
                 <div class="flex items-center gap-2" data-testid="status-wallets-discovered">
                     <div class="flex h-7 w-7 items-center justify-center rounded-full bg-white/5 border border-white/5"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-server h-4 w-4 text-info"><rect width="20" height="8" x="2" y="2" rx="2" ry="2"></rect><rect width="20" height="8" x="2" y="14" rx="2" ry="2"></rect><line x1="6" x2="6.01" y1="6" y2="6"></line><line x1="6" x2="6.01" y1="18" y2="18"></line></svg></div>
-                    <div class="flex flex-col"><span class="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Wallets Found</span><span class="text-sm font-mono font-medium text-foreground">47,014</span></div>
+                    <div class="flex flex-col"><span class="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Wallets Found</span><span class="text-sm font-mono font-medium text-foreground"><span id="header-stat-wallets">--</span></span></div>
                 </div>
                 <div class="w-px h-8 bg-white/10 hidden lg:block"></div>
                 <div class="flex items-center gap-2" data-testid="status-db-records">
                     <div class="flex h-7 w-7 items-center justify-center rounded-full bg-white/5 border border-white/5"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-database h-4 w-4 text-muted-foreground"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M3 5V19A9 3 0 0 0 21 19V5"></path><path d="M3 12A9 3 0 0 0 21 12"></path></svg></div>
-                    <div class="flex flex-col"><span class="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">DB Records</span><span class="text-sm font-mono font-medium text-foreground">270,734</span></div>
+                    <div class="flex flex-col"><span class="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">DB Records</span><span class="text-sm font-mono font-medium text-foreground"><span id="header-stat-db">--</span></span></div>
                 </div>
                 <div class="w-px h-8 bg-white/10 hidden lg:block"></div>
                 <div class="flex items-center gap-2" data-testid="status-last-trade">
                     <div class="flex h-7 w-7 items-center justify-center rounded-full bg-white/5 border border-white/5"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-clock h-4 w-4 text-muted-foreground"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div>
-                    <div class="flex flex-col"><span class="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Last Trade</span><span class="text-sm font-mono font-medium text-foreground">3 minutes ago</span></div>
+                    <div class="flex flex-col"><span class="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Last Trade</span><span class="text-sm font-mono font-medium text-foreground"><span id="header-stat-last-trade">--</span></span></div>
                 </div>
             </div>
         </header>"""

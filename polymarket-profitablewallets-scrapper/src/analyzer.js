@@ -49,9 +49,14 @@ async function analyzeWallet(wallet) {
     const totalClosedPositions = totalRedeems + totalSells;
 
     // Win rate approximation: redeems / (redeems + sells) if we have data
+    // NOTE: This is a conservative estimate based on REDEEM events.
+    // Active traders who sell before expiry will show a lower win rate here.
     const winRate = totalClosedPositions > 0
         ? totalRedeems / totalClosedPositions
         : 0;
+
+    // Detect high-performance active traders (Low redemptions but high PNL)
+    const isActiveWhale = (wallet.pnl > 5000 && winRate < 0.2 && totalTrades > 20);
 
     // Average trade size (USDC)
     const tradeSizes = trades.map(t => parseFloat(t.usdcSize) || 0).filter(s => s > 0);
@@ -123,6 +128,7 @@ async function analyzeWallet(wallet) {
         daysSinceLastTrade: Math.round(daysSinceLastTrade * 10) / 10,
         positions: positionsSummary,
         recentTrades,
+        isActiveWhale,
     };
 }
 
