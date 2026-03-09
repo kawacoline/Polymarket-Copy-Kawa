@@ -1,0 +1,5 @@
+TypeError: w.tags.join is not a function
+    at printSummary (C:\Users\Kawa\Desktop\polymarket-profitablewallets-scrapper\src\exporter.js:72:29)
+    at runScrape (C:\Users\Kawa\Desktop\polymarket-profitablewallets-scrapper\src\index.js:214:9)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async Command.<anonymous> (C:\Users\Kawa\Desktop\polymarket-profitablewallets-scrapper\src\index.js:248:13)
