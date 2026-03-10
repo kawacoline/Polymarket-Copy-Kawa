@@ -7619,17 +7619,17 @@
             <div
                 class="flex items-center gap-3 flex-wrap justify-center border-y border-white/5 py-3 2xl:border-0 2xl:py-0 shrink-0 w-full 2xl:w-auto overflow-x-auto">
                 <button id="startBtn"
-                    class="shrink-0 inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors h-8 px-4 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/50 shadow shadow-emerald-500/20"
+                    class="shrink-0 inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors h-8 px-4 bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 border border-emerald-500/50 shadow shadow-emerald-500/20 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                     onclick="startBot()">
                     <span class="mr-2">▶</span> START
                 </button>
                 <button id="stopBtn"
-                    class="shrink-0 inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors h-8 px-4 border border-input bg-transparent shadow-sm hover:bg-accent hover:text-accent-foreground"
+                    class="shrink-0 inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors h-8 px-4 border border-input bg-transparent shadow-sm hover:bg-accent hover:text-accent-foreground cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                     onclick="stopBot()" disabled>
                     <span class="mr-2">⏸</span> PAUSE
                 </button>
                 <button id="panicSellBtn"
-                    class="shrink-0 inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors h-8 px-4 bg-destructive text-destructive-foreground shadow hover:bg-destructive/90"
+                    class="shrink-0 inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors h-8 px-4 bg-destructive text-destructive-foreground shadow hover:bg-destructive/90 cursor-pointer disabled:cursor-not-allowed disabled:opacity-50"
                     onclick="showModal('panicSellModal')">
                     <span class="mr-2">🚨</span> PANIC
                 </button>

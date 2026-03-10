@@ -9,6 +9,7 @@ bot_status.json
 seen_trades.json
 accounts.json
 withdrawals.json
+*.log
 
 # Backups
 *_backup_*.json

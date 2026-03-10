@@ -111,7 +111,12 @@ def main():
             
             if local_rev and remote_rev and local_rev != remote_rev:
                 log("New code detected! Pulling latest...")
-                run_cmd(["git", "pull", "origin", BRANCH], quiet=True)
+                pull_result = subprocess.run(["git", "pull", "origin", BRANCH], capture_output=True, text=True, cwd=REPO_DIR)
+                
+                if pull_result.returncode != 0:
+                    log(f"Git pull failed: {pull_result.stderr.strip()}. Forcing reset...")
+                    run_cmd(["git", "reset", "--hard", f"origin/{BRANCH}"])
+
                 
                 log("Updating dependencies...")
                 run_cmd([PYTHON_EXE, "-m", "pip", "install", "-r", "requirements.txt", "--upgrade", "-q"])
