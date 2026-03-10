@@ -342,10 +342,16 @@ def get_status():
         status["last_trade_time"] = last_trade_time
         status["events_session"] = events_session
         
+        # Override running status based on actual thread state if running within the GUI
+        global bot_thread
+        if bot_thread is None or not bot_thread.is_alive():
+            status["running"] = False
+            status["message"] = "Bot stopped"
+        
         return jsonify(status)
     
     except Exception as e:
-        import traceback; traceback.print_exc()
+        logger.exception(f"API Error in /api/status: {e}")
         return jsonify({"error": str(e)}), 500
 
 
@@ -370,7 +376,7 @@ def start_bot():
         return jsonify({"success": True, "message": "Bot started"})
     
     except Exception as e:
-        import traceback; traceback.print_exc()
+        logger.exception(f"API Error in /api/bot/start: {e}")
         return jsonify({"error": str(e)}), 500
 
 
