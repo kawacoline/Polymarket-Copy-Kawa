@@ -13,12 +13,12 @@ function toggleWalletName(address) {
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function () {
     refreshAll();
-    // Auto-refresh every 30 seconds
+    // Auto-refresh every 0.5 seconds (real-time)
     setInterval(() => {
         loadStatus();
         loadPortfolioStats();
         loadPositions();
-    }, 30000);
+    }, 500);
 });
 
 // ============================================================================
