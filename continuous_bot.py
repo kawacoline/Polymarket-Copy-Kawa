@@ -645,7 +645,7 @@ class CopyTradingBot:
             print(error_msg)
             self.update_status(error_msg)
     
-    def start(self, check_interval: int = 60):
+    def start(self, check_interval: float = 0.01):
         """Start the continuous monitoring bot"""
         if self.running:
             logger.info("Bot is already running.")

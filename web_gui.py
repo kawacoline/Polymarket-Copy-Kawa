@@ -369,7 +369,7 @@ def start_bot():
         bot_instance = CopyTradingBot()
         
         # Start bot in separate thread
-        bot_thread = threading.Thread(target=bot_instance.start, kwargs={"check_interval": 60})
+        bot_thread = threading.Thread(target=bot_instance.start, kwargs={"check_interval": 0.01})
         bot_thread.daemon = True
         bot_thread.start()
         
