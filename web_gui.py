@@ -18,7 +18,10 @@ from py_clob_client.order_builder.constants import SELL
 import pandas as pd
 from io import BytesIO
 
+from logging_utils import setup_logger
+
 load_dotenv()
+logger = setup_logger("WebGUI")
 
 FUNDER_ADDRESS = os.getenv("FUNDER_ADDRESS")
 PRIVATE_KEY = os.getenv("PRIVATE_KEY")
@@ -105,8 +108,7 @@ def get_positions():
         return enhanced
         
     except Exception as e:
-        import traceback; traceback.print_exc()
-        print(f"Error calculating positions from DB: {e}")
+        import traceback;        logger.error(f"Error calculating positions from DB: {e}")
         return []
 
 
@@ -117,43 +119,45 @@ def get_portfolio_stats():
         
         # Method 1: Try using authenticated CLOB client
         try:
-            print("[DEBUG] Attempting to fetch balance using CLOB client...")
+            logger.debug("[DEBUG] Attempting to fetch balance using CLOB client...")
             client = get_clob_client()
             
             # Try the get_balance_allowance method
             try:
                 bal_data = client.get_balance_allowance()
-                print(f"[DEBUG] get_balance_allowance() returned: {bal_data}")
+                logger.debug(f"[DEBUG] get_balance_allowance() returned: {bal_data}")
                 
+                # Logic to extract balance from response
                 if isinstance(bal_data, dict):
-                    # Try different possible keys
-                    for key in ["balance", "amount", "allowance"]:
+                    for key in ['balance', 'available_balance', 'total_balance']:
                         if key in bal_data:
-                            raw_balance = float(bal_data[key])
-                            balance = raw_balance / 1_000_000  # USDC has 6 decimals
-                            print(f"[DEBUG] Extracted balance from '{key}': {balance} USDC")
+                            balance = float(bal_data[key]) / 10**6
+                            logger.debug(f"[DEBUG] Extracted balance from '{key}': {balance} USDC")
                             break
-            except AttributeError:
-                print("[DEBUG] get_balance_allowance() method not available")
-            
-            # Method 1b: Try get_balance if get_balance_allowance didn't work
-            if balance == 0:
+                elif hasattr(bal_data, 'balance'):
+                    balance = float(bal_data.balance) / 10**6
+            except Exception:
+                logger.debug("[DEBUG] get_balance_allowance() method not available")
                 try:
                     bal_data = client.get_balance()
-                    print(f"[DEBUG] get_balance() returned: {bal_data}")
-                    
+                    logger.debug(f"[DEBUG] get_balance() returned: {bal_data}")
                     if isinstance(bal_data, (int, float)):
-                        balance = float(bal_data) / 1_000_000
-                        print(f"[DEBUG] Balance from get_balance(): {balance} USDC")
-                    elif isinstance(bal_data, dict) and "balance" in bal_data:
-                        balance = float(bal_data["balance"]) / 1_000_000
-                        print(f"[DEBUG] Balance from get_balance() dict: {balance} USDC")
-                except AttributeError:
-                    print("[DEBUG] get_balance() method not available")
-                    
+                        balance = float(bal_data) / 10**6
+                    elif isinstance(bal_data, dict) and 'balance' in bal_data:
+                        balance = float(bal_data['balance']) / 10**6
+                        logger.debug(f"[DEBUG] Balance from get_balance() dict: {balance} USDC")
+                    elif hasattr(bal_data, 'balance'):
+                        balance = float(bal_data.balance) / 10**6
+                        logger.debug(f"[DEBUG] Balance from get_balance() dict: {balance} USDC")
+                except Exception:
+                    logger.debug("[DEBUG] get_balance() method not available")
+            
+            if balance == 0:
+                 logger.debug(f"[DEBUG] CLOB client balance fetch failed or zero")
+        
         except Exception as e:
             import traceback; traceback.print_exc()
-            print(f"[DEBUG] CLOB client balance fetch failed: {e}")
+            logger.debug(f"[DEBUG] CLOB client balance fetch failed: {e}")
         
         # Method 2: Check blockchain directly using web3 (most reliable since REST endpoints were deprecated)
         if balance == 0:
@@ -184,17 +188,17 @@ def get_portfolio_stats():
                 raw_balance = usdc_contract.functions.balanceOf(user_address).call()
                 balance = raw_balance / 1_000_000  # USDC has 6 decimals
                 
-                print(f"[DEBUG] Blockchain balance: {balance} USDC (raw: {raw_balance})")
+                logger.debug(f"[DEBUG] Blockchain balance: {balance} USDC (raw: {raw_balance})")
             except ImportError:
-                print("[DEBUG] web3 not installed - skipping blockchain check")
-                print("[DEBUG] Install with: pip install web3")
+                logger.debug("[DEBUG] web3 not installed - skipping blockchain check")
+                logger.debug("[DEBUG] Install with: pip install web3")
             except Exception as e:
                 import traceback; traceback.print_exc()
-                print(f"[DEBUG] Blockchain balance check failed: {e}")
+                logger.debug(f"[DEBUG] Blockchain balance check failed: {e}")
         
         if balance == 0:
-            print("[WARNING] Could not fetch balance from any source!")
-            print("[INFO] Make sure you have USDC in your wallet on Polygon network")
+            logger.warning("[WARNING] Could not fetch balance from any source!")
+            logger.info("[INFO] Make sure you have USDC in your wallet on Polygon network")
         
         # ---------------------------------
 
@@ -1015,16 +1019,16 @@ if __name__ == '__main__':
     if not os.path.exists(ACCOUNTS_FILE):
         with open(ACCOUNTS_FILE, 'w') as f:
             json.dump({"accounts": []}, f, indent=2)
-        print("Created accounts.json")
+        logger.info("Created accounts.json")
     
-    print("\n" + "="*80)
-    print("  Polymarket Multi-Account Copy Trading Bot - Web GUI")
-    print("  Starting server at http://localhost:5000")
-    print("  Features:")
-    print("    • Multi-account tracking with configurable delays")
-    print("    • Excel export for positions, history, and full reports")
-    print("    • Real-time portfolio monitoring")
-    print("    • Per-account statistics and management")
-    print("="*80 + "\n")
+    logger.info("\n" + "="*80)
+    logger.info("  Polymarket Multi-Account Copy Trading Bot - Web GUI")
+    logger.info("  Starting server at http://localhost:5000")
+    logger.info("  Features:")
+    logger.info("    • Multi-account tracking with configurable delays")
+    logger.info("    • Excel export for positions, history, and full reports")
+    logger.info("    • Real-time portfolio monitoring")
+    logger.info("    • Per-account statistics and management")
+    logger.info("="*80 + "\n")
     
     app.run(host='0.0.0.0', port=5000, debug=True, use_reloader=False)

@@ -5,8 +5,10 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional
 import requests
 from dotenv import load_dotenv
+from logging_utils import setup_logger
 
 load_dotenv()
+logger = setup_logger("BettingLogger")
 
 FUNDER_ADDRESS = os.getenv("FUNDER_ADDRESS")
 DATA_API = "https://data-api.polymarket.com"
@@ -123,7 +125,7 @@ class BettingLogger:
     
     def import_historical_trades(self):
         """Import trade history into database"""
-        print("Importing historical trades...")
+        logger.info("Importing historical trades...")
         trades = self.fetch_trade_history(limit=1000)
         
         conn = sqlite3.connect(self.db_path)
@@ -167,7 +169,7 @@ class BettingLogger:
         conn.commit()
         conn.close()
         
-        print(f"Imported {imported} new trades")
+        logger.info(f"Imported {imported} new trades")
         return imported
     
     def update_position_outcomes(self):
@@ -178,13 +180,13 @@ class BettingLogger:
         1. Manual sells (user closed position)
         2. Market resolutions (market settled)
         """
-        print("Checking for closed positions and resolved markets...")
+        logger.info("Checking for closed positions and resolved markets...")
         
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         # Step 1: Get all SELL trades from activity and mark positions as closed by sell
-        print("  Checking for manual sells...")
+        logger.info("  Checking for manual sells...")
         try:
             response = requests.get(
                 f"{DATA_API}/activity",
@@ -238,15 +240,15 @@ class BettingLogger:
                         """, (timestamp, pnl, duration_hours, buy_id))
                         
                         sells_found += 1
-                        print(f"    ✓ Marked position as sold: {activity.get('title', 'Unknown')[:40]} | P&L: ${pnl:.2f}")
+                        logger.info(f"    ✓ Marked position as sold: {activity.get('title', 'Unknown')[:40]} | P&L: ${pnl:.2f}")
             
-            print(f"  Found {sells_found} manual sells")
+            logger.info(f"  Found {sells_found} manual sells")
             
         except Exception as e:
-            print(f"  Error checking for sells: {e}")
+            logger.info(f"  Error checking for sells: {e}")
         
         # Step 2: Check for market resolutions
-        print("  Checking for resolved markets...")
+        logger.info("  Checking for resolved markets...")
         
         # Get all remaining open trades
         cursor.execute("""
@@ -325,7 +327,7 @@ class BettingLogger:
                             """, (now_timestamp, pnl, duration_hours, trade_id))
                             
                             result = "WIN" if pnl > 0 else "LOSS" if pnl < 0 else "BREAK EVEN"
-                            print(f"    ✓ Market resolved: {market_info.get('title', 'Unknown')[:40]} | {result} | P&L: ${pnl:.2f}")
+                            logger.info(f"    ✓ Market resolved: {market_info.get('title', 'Unknown')[:40]} | {result} | P&L: ${pnl:.2f}")
                             
                             resolved += 1
                     else:
@@ -336,7 +338,7 @@ class BettingLogger:
         conn.commit()
         conn.close()
         
-        print(f"  Resolved {resolved} market outcomes")
+        logger.info(f"  Resolved {resolved} market outcomes")
         return sells_found + resolved
     
     def calculate_pnl(self):
@@ -490,9 +492,9 @@ class BettingLogger:
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
-        print("\n" + "=" * 80)
-        print("BETTING ACTIVITY SUMMARY")
-        print("=" * 80)
+        logger.info("\n" + "=" * 80)
+        logger.info("BETTING ACTIVITY SUMMARY")
+        logger.info("=" * 80)
         
         # Overall stats
         cursor.execute("""
@@ -518,26 +520,26 @@ class BettingLogger:
         losses = losses or 0
         total_pnl = total_pnl or 0.0
         
-        print(f"\nOverall Performance:")
-        print(f"  Total Trades: {total_trades or 0}")
-        print(f"  Total Wagered: ${total_wagered or 0:.2f}")
-        print(f"  Open Positions: {open_count or 0}")
-        print(f"  Closed Positions: {closed_count or 0}")
+        logger.info(f"\nOverall Performance:")
+        logger.info(f"  Total Trades: {total_trades or 0}")
+        logger.info(f"  Total Wagered: ${total_wagered or 0:.2f}")
+        logger.info(f"  Open Positions: {open_count or 0}")
+        logger.info(f"  Closed Positions: {closed_count or 0}")
         
         if closed_count and closed_count > 0:
             win_rate = (wins / (wins + losses) * 100) if (wins + losses) > 0 else 0
-            print(f"\n  Wins: {wins}")
-            print(f"  Losses: {losses}")
-            print(f"  Win Rate: {win_rate:.1f}%")
-            print(f"  Total P&L: ${total_pnl:.2f}")
+            logger.info(f"\n  Wins: {wins}")
+            logger.info(f"  Losses: {losses}")
+            logger.info(f"  Win Rate: {win_rate:.1f}%")
+            logger.info(f"  Total P&L: ${total_pnl:.2f}")
             
             roi = (total_pnl / total_wagered * 100) if total_wagered > 0 else 0
-            print(f"  ROI: {roi:.1f}%")
+            logger.info(f"  ROI: {roi:.1f}%")
         
         # Recent activity
-        print(f"\n{'-' * 80}")
-        print("Recent Trades (Last 10):")
-        print(f"{'-' * 80}")
+        logger.info(f"\n{'-' * 80}")
+        logger.info("Recent Trades (Last 10):")
+        logger.info(f"{'-' * 80}")
         
         cursor.execute("""
             SELECT 
@@ -550,17 +552,17 @@ class BettingLogger:
         for row in cursor.fetchall():
             date, title, outcome, size, price, status, pnl = row
             pnl_str = f"${pnl:+.2f}" if pnl else "---"
-            print(f"  [{date}] {title[:40]}")
-            print(f"             {outcome} | ${size:.2f} @ {price*100:.1f}¢ | {status} | P&L: {pnl_str}")
+            logger.info(f"  [{date}] {title[:40]}")
+            logger.info(f"             {outcome} | ${size:.2f} @ {price*100:.1f}¢ | {status} | P&L: {pnl_str}")
         
         conn.close()
-        print("=" * 80 + "\n")
+        logger.info("=" * 80 + "\n")
     
     def daily_update(self):
         """Run the full daily update process"""
-        print(f"\n{'='*80}")
-        print(f"Daily Betting Logger - {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}")
-        print(f"{'='*80}\n")
+        logger.info(f"\n{'='*80}")
+        logger.info(f"Daily Betting Logger - {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}")
+        logger.info(f"{'='*80}\n")
         
         # Import new trades
         self.import_historical_trades()
@@ -575,14 +577,14 @@ class BettingLogger:
         today = datetime.now(timezone.utc).strftime('%Y-%m-%d')
         stats = self.generate_daily_stats(today)
         
-        print(f"\nToday's Stats ({today}):")
-        print(f"  New Bets: {stats['total_bets']}")
-        print(f"  Amount Wagered: ${stats['total_wagered']:.2f}")
-        print(f"  Open Positions: {stats['open_positions']}")
-        print(f"  Closed Positions: {stats['closed_positions']}")
-        print(f"  Wins: {stats['wins']} | Losses: {stats['losses']}")
-        print(f"  Win Rate: {stats['win_rate']:.1f}%")
-        print(f"  Total P&L: ${stats['total_pnl']:.2f}")
+        logger.info(f"\nToday's Stats ({today}):")
+        logger.info(f"  New Bets: {stats['total_bets']}")
+        logger.info(f"  Amount Wagered: ${stats['total_wagered']:.2f}")
+        logger.info(f"  Open Positions: {stats['open_positions']}")
+        logger.info(f"  Closed Positions: {stats['closed_positions']}")
+        logger.info(f"  Wins: {stats['wins']} | Losses: {stats['losses']}")
+        logger.info(f"  Win Rate: {stats['win_rate']:.1f}%")
+        logger.info(f"  Total P&L: ${stats['total_pnl']:.2f}")
         
         # Print summary report
         self.print_summary_report()
@@ -590,7 +592,7 @@ class BettingLogger:
 
 def main():
     if not FUNDER_ADDRESS:
-        print("Error: FUNDER_ADDRESS not found in .env file")
+        logger.info("Error: FUNDER_ADDRESS not found in .env file")
         return
     
     logger = BettingLogger()

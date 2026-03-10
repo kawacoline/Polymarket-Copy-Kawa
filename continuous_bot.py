@@ -2,13 +2,21 @@ import os
 import time
 import json
 import requests
+import logging
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 from py_clob_client.client import ClobClient
 from py_clob_client.clob_types import MarketOrderArgs, OrderType
 from py_clob_client.order_builder.constants import BUY, SELL
 
+from logging_utils import setup_logger
+
 load_dotenv()
+
+# Logger Setup
+logger = setup_logger()
+# Logger Setup (backward compatibility for any local references if needed)
+# logging.basicConfig(level=logging.INFO) # Removed ad-hoc config
 
 FUNDER_ADDRESS = os.getenv("FUNDER_ADDRESS")
 PRIVATE_KEY = os.getenv("PRIVATE_KEY")
@@ -110,8 +118,7 @@ class CopyTradingBot:
             with open(ACCOUNTS_FILE, 'w') as f:
                 json.dump({"accounts": self.target_accounts}, f, indent=2)
         except Exception as e:
-            import traceback; traceback.print_exc()
-            print(f"Error saving accounts: {e}")
+            logger.exception(f"Error saving accounts: {e}")
     
     def add_target_account(self, address: str, name: str = None, bet_amount: float = None):
         """Add a new target account to track"""
@@ -198,8 +205,7 @@ class CopyTradingBot:
                 valid_trades = [t for t in self.seen_trades if t is not None]
                 json.dump(valid_trades, f)
         except Exception as e:
-            import traceback; traceback.print_exc()
-            print(f"Error saving seen trades: {e}")
+            logger.exception(f"Error saving seen trades: {e}")
     
     def update_status(self, message: str = None):
         """Update status file for GUI"""
@@ -223,8 +229,7 @@ class CopyTradingBot:
             with open(STATUS_FILE, 'w') as f:
                 json.dump(status, f, indent=2)
         except Exception as e:
-            import traceback; traceback.print_exc()
-            print(f"Error updating status: {e}")
+            logger.exception(f"Error updating status: {e}")
     
     def get_profile_name(self, wallet_address: str) -> str:
         """Fetch profile name from Polymarket"""
@@ -453,7 +458,7 @@ class CopyTradingBot:
             
             # SESSION LIMIT CHECK
             if self.trades_this_session >= MAX_TRADES_PER_SESSION:
-                print(f"  [SESSION LIMIT] Reached max trades ({MAX_TRADES_PER_SESSION}). Skipping {name}'s trade on {title}.")
+                logger.info(f"  [SESSION LIMIT] Reached max trades ({MAX_TRADES_PER_SESSION}). Skipping {name}'s trade on {title}.")
                 return
             
             # EVENT LIMIT CHECK
@@ -546,7 +551,7 @@ class CopyTradingBot:
                         self.stats["accounts"][address]["trades_copied"] += 1
                     
                     self.trades_this_session += 1  # Increment session counter
-                    print(f"  [SESSION] Trades this session: {self.trades_this_session}/{MAX_TRADES_PER_SESSION}")
+                    logger.info(f"  [SESSION] Trades this session: {self.trades_this_session}/{MAX_TRADES_PER_SESSION}")
                     
                     # Log live trade to database
                     try:
@@ -564,13 +569,12 @@ class CopyTradingBot:
                             copied_from=address
                         )
                     except Exception as e:
-                        import traceback; traceback.print_exc()
-                        print(f"  Warning: Could not log live trade to database: {e}")
+                        logger.exception(f"  Warning: Could not log live trade to database: {e}")
                         
                 except Exception as e:
-                    import traceback; traceback.print_exc()
+                    logger.exception(f"Error executing trade: {e}")
                     log_msg += f" ✗ FAILED: {str(e)}"
-                    print(log_msg)
+                    logger.error(log_msg)
                     self.stats["failed_copies"] += 1
             
             # Mark trade as seen (only if trade_id is valid)
@@ -643,6 +647,10 @@ class CopyTradingBot:
     
     def start(self, check_interval: int = 60):
         """Start the continuous monitoring bot"""
+        if self.running:
+            logger.info("Bot is already running.")
+            return
+
         if not FUNDER_ADDRESS:
             print("Error: Missing FUNDER_ADDRESS in .env")
             return
@@ -662,38 +670,34 @@ class CopyTradingBot:
         
         enabled_count = sum(1 for acc in self.target_accounts if acc.get("enabled", True))
         
-        print("\n" + "="*80)
-        print(f"  MULTI-ACCOUNT COPY TRADING BOT STARTED")
-        print(f"  Tracking: {enabled_count} of {len(self.target_accounts)} accounts")
-        for account in self.target_accounts:
-            if account.get("enabled", True):
-                name = account.get("name", "Unknown")
-                addr = account.get("address", "")[:10]
-                print(f"    • {name} ({addr}...)")
-        print(f"  Your wallet: {FUNDER_ADDRESS[:10]}...{FUNDER_ADDRESS[-6:]}")
-        print(f"  Mode: {'DRY RUN' if self.dry_run else 'LIVE TRADING'}")
-        print(f"  Default Bet Amount: ${BET_AMOUNT}")
-        print(f"  Check Interval: {check_interval} seconds")
-        print(f"  Account Check Delay: {ACCOUNT_CHECK_DELAY} seconds")
-        print("="*80 + "\n")
+        logger.info("\n" + "="*50)
+        logger.info("  🚀 Polymarket Copy Trading Bot Started")
+        logger.info(f"  Funder: {FUNDER_ADDRESS}")
+        logger.info(f"  Dry Run: {DRY_RUN}")
+        logger.info(f"  Interval: {check_interval}s")
+        logger.info("="*50 + "\n")
         
         self.update_status("Bot started and monitoring multiple accounts...")
         
         try:
             while self.running:
-                print(f"\n[{datetime.now().strftime('%H:%M:%S')}] Check cycle starting...")
-                self.check_and_copy()
-                print(f"[{datetime.now().strftime('%H:%M:%S')}] Check complete, sleeping {check_interval}s...")
-                time.sleep(check_interval)
+                try:
+                    logger.info(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Checking all accounts...")
+                    self.check_and_copy()
+                    logger.info(f"Finished check. Sleeping for {check_interval}s...")
+                    time.sleep(check_interval)
+                except Exception as e:
+                    logger.exception(f"CRITICAL ERROR in main loop: {e}")
+                    time.sleep(10) # Wait before retry
         
         except KeyboardInterrupt:
-            print("\n\n⛔ Bot stopped by user")
+            logger.info("\n\n⛔ Bot stopped by user")
             self.running = False
             self.update_status("Bot stopped by user")
         
         except Exception as e:
             import traceback; traceback.print_exc()
-            print(f"\n\n❌ Bot error: {e}")
+            logger.error(f"\n\n❌ Bot error: {e}")
             self.running = False
             self.update_status(f"Bot stopped due to error: {str(e)}")
     
