@@ -454,7 +454,7 @@ class CopyTradingBot:
             if trade_id in self.seen_trades:
                 return
             # SESSION LIMIT CHECK
-            if self.trades_this_session >= MAX_TRADES_PER_SESSION:
+            if not self.dry_run and self.trades_this_session >= MAX_TRADES_PER_SESSION:
                 logger.info(f"  [SESSION LIMIT] Reached max trades ({MAX_TRADES_PER_SESSION}). Skipping {name}'s trade on {title}.")
                 if trade_id: # Only add if trade_id is valid
                     self.seen_trades.add(trade_id)
@@ -466,7 +466,7 @@ class CopyTradingBot:
                 import sqlite3
                 from pathlib import Path
                 db_path = Path("betting_history.db")
-                if db_path.exists():
+                if not self.dry_run and db_path.exists():
                     conn = sqlite3.connect(db_path)
                     cursor = conn.cursor()
                     cursor.execute(
