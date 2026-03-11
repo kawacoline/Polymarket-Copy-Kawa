@@ -118,40 +118,40 @@ async function loadStatus() {
             document.getElementById('stopBtn').disabled = false;
         } else {
             indicator.className = 'status-indicator stopped';
-            text.textContent = status.message || 'Bot Stopped';
+            text.textContent = data.message || 'Bot Stopped';
             document.getElementById('startBtn').disabled = false;
             document.getElementById('stopBtn').disabled = true;
         }
 
         // Update dry run toggle
-        document.getElementById('dryRunToggle').checked = status.dry_run || false;
+        document.getElementById('dryRunToggle').checked = data.dry_run || false;
 
         // Update accounts badge
-        const trackedCount = status.tracked_accounts || 0;
-        const enabledCount = status.enabled_accounts || 0;
+        const trackedCount = data.tracked_accounts || 0;
+        const enabledCount = data.enabled_accounts || 0;
         const badge = document.getElementById('accountsBadge');
         if (badge) badge.textContent = `${enabledCount} of ${trackedCount} Accounts Active`;
 
         // Update header stats
         const walletsStat = document.getElementById('header-stat-wallets');
         if (walletsStat) {
-            walletsStat.textContent = (status.wallets_found || 0).toLocaleString();
+            walletsStat.textContent = (data.wallets_found || 0).toLocaleString();
         }
 
         const dbStat = document.getElementById('header-stat-db');
         if (dbStat) {
-            dbStat.textContent = (status.db_records || 0).toLocaleString();
+            dbStat.textContent = (data.db_records || 0).toLocaleString();
         }
 
         const eventsStat = document.getElementById('header-stat-events');
         if (eventsStat) {
-            eventsStat.textContent = (status.events_session || 0).toLocaleString();
+            eventsStat.textContent = (data.events_session || 0).toLocaleString();
         }
 
         const lastTradeStat = document.getElementById('header-stat-last-trade');
         if (lastTradeStat) {
-            if (status.last_trade_time) {
-                lastTradeStat.textContent = formatTimestamp(status.last_trade_time * 1000).toLowerCase();
+            if (data.last_trade_time) {
+                lastTradeStat.textContent = formatTimestamp(data.last_trade_time * 1000).toLowerCase();
             } else {
                 lastTradeStat.textContent = '--';
             }
