@@ -6,10 +6,13 @@ def setup_logger(name="PolymarketBot"):
     logger.setLevel(logging.INFO)
     
     if not logger.handlers:
+        # Ensure logs directory exists
+        os.makedirs('logs', exist_ok=True)
+        
         # Create handlers
         c_handler = logging.StreamHandler()
-        f_handler = logging.FileHandler('bot.log')
-        e_handler = logging.FileHandler('error.log')
+        f_handler = logging.FileHandler('logs/bot.log')
+        e_handler = logging.FileHandler('logs/error.log')
         
         c_handler.setLevel(logging.INFO)
         f_handler.setLevel(logging.INFO)
