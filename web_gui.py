@@ -49,6 +49,10 @@ log = logging.getLogger('werkzeug')
 log.setLevel(logging.INFO)
 log.addFilter(NoSpamFilter())
 
+# Silence noisy py_clob_client library warnings ("Make sure you have USDC...")
+for _lib_logger_name in ['py_clob_client', 'polymarket', 'clob_client']:
+    logging.getLogger(_lib_logger_name).setLevel(logging.CRITICAL)
+
 # ---- USDC Balance: RPC Fallback Chain + Cache ----
 # Ordered list of reliable free Polygon RPCs; bot cycles to next on failure
 POLYGON_RPCS = [
@@ -387,8 +391,16 @@ def get_status():
     try:
         if os.path.exists(STATUS_FILE):
             with open(STATUS_FILE, 'r') as f:
-                status = json.load(f)
+                content = f.read().strip()
+                if content:
+                    status = json.loads(content)
+                else:
+                    # File is empty (race condition with writer) — use defaults
+                    status = None
         else:
+            status = None
+
+        if status is None:
             status = {
                 "running": False,
                 "dry_run": True,
