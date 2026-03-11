@@ -37,10 +37,17 @@ ACCOUNTS_FILE = "accounts.json"
 
 app = Flask(__name__)
 
-# Suppress Werkzeug access logs
+# Filter out spammy dashboard polling from access logs
 import logging
+
+class NoSpamFilter(logging.Filter):
+    def filter(self, record):
+        msg = record.getMessage()
+        return not any(x in msg for x in ['GET /api/status', 'GET /api/positions', 'GET /api/portfolio'])
+
 log = logging.getLogger('werkzeug')
-log.setLevel(logging.ERROR)
+log.setLevel(logging.INFO)
+log.addFilter(NoSpamFilter())
 
 # Bot instance (will be imported)
 bot_instance = None
