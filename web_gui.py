@@ -100,7 +100,8 @@ def get_positions():
                 token_id as asset,
                 SUM(CASE WHEN side = 'BUY' THEN size ELSE -size END) as net_size,
                 SUM(CASE WHEN side = 'BUY' THEN size * price ELSE 0 END) as total_spent,
-                SUM(CASE WHEN side = 'BUY' THEN size ELSE 0 END) as total_bought
+                SUM(CASE WHEN side = 'BUY' THEN size ELSE 0 END) as total_bought,
+                GROUP_CONCAT(DISTINCT copied_from) as copied_from
             FROM trades
             GROUP BY token_id, market_title, outcome
             HAVING net_size > 0.01
@@ -130,14 +131,79 @@ def get_positions():
                 "pnl": 0.0,
                 "pnl_percent": 0.0,
                 "current_value": round(size * current_price, 2),
-                "cost_basis": round(size * entry_price, 2)
+                "cost_basis": round(size * entry_price, 2),
+                "copied_from": row["copied_from"]
             })
             
         return enhanced
         
     except Exception as e:
-        import traceback;        logger.error(f"Error calculating positions from DB: {e}")
+        logger.error(f"Error calculating positions from DB: {e}")
         return []
+
+def get_simulated_positions():
+    try:
+        import sqlite3
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Check if the column exists first
+        try:
+            cursor.execute("SELECT is_dry_run FROM trades LIMIT 1")
+        except sqlite3.OperationalError:
+            # Column doesn't exist yet, so no simulated trades
+            return []
+            
+        # Group trades by token to find net position for dry run trades
+        cursor.execute("""
+            SELECT 
+                market_title as title,
+                outcome,
+                token_id as asset,
+                SUM(CASE WHEN side = 'BUY' THEN size ELSE -size END) as net_size,
+                SUM(CASE WHEN side = 'BUY' THEN size * price ELSE 0 END) as total_spent,
+                SUM(CASE WHEN side = 'BUY' THEN size ELSE 0 END) as total_bought,
+                GROUP_CONCAT(DISTINCT copied_from) as copied_from
+            FROM trades
+            WHERE is_dry_run = 1
+            GROUP BY token_id, market_title, outcome
+            HAVING net_size > 0.01
+        """)
+        
+        rows = cursor.fetchall()
+        conn.close()
+        
+        enhanced = []
+        for row in rows:
+            size = float(row['net_size'])
+            # Calculate average entry price
+            total_bought = float(row['total_bought'])
+            entry_price = float(row['total_spent']) / total_bought if total_bought > 0 else 0
+            
+            # Since we can't fetch live price easily without SDK, mock currentPrice as entry 
+            current_price = entry_price
+            
+            enhanced.append({
+                "title": row['title'],
+                "outcome": row['outcome'],
+                "asset": row['asset'],
+                "size": round(size, 2),
+                "price": round(entry_price, 4),
+                "currentPrice": round(current_price, 4),
+                "pnl": 0.0,
+                "pnl_percent": 0.0,
+                "current_value": round(size * current_price, 2),
+                "cost_basis": round(size * entry_price, 2),
+                "copied_from": row["copied_from"]
+            })
+            
+        return enhanced
+        
+    except Exception as e:
+        logger.error(f"Error calculating simulated positions from DB: {e}")
+        return []
+
 
 
 def _fetch_usdc_balance_with_fallback():
@@ -368,6 +434,15 @@ def get_status():
         status["events_session"] = events_session
         
         # Override running status based on actual thread state if running within the GUI
+        status["header_stats"] = {
+            "wallets_found": wallets_found,
+            "events_session": events_session,
+            "db_records": db_records,
+            "last_trade_time": last_trade_time
+        }
+        
+        status["funder_address"] = FUNDER_ADDRESS
+        
         global bot_thread
         if bot_thread is None or not bot_thread.is_alive():
             status["running"] = False
@@ -444,6 +519,16 @@ def api_get_positions():
     """Get current positions"""
     try:
         positions = get_positions()
+        return jsonify(positions)
+    
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/simulated_positions', methods=['GET'])
+def api_get_simulated_positions():
+    """Get simulated dry run positions"""
+    try:
+        positions = get_simulated_positions()
         return jsonify(positions)
     
     except Exception as e:

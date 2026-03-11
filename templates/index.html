@@ -7596,6 +7596,18 @@
                                         <path d="M18 10L18 16" />
                                     </svg> Positions
                                 </a>
+                                <a href="#simluated"
+                                    class="inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors hover:bg-white/10 text-muted-foreground hover:text-foreground h-8 px-2"
+                                    title="Go to Simulated Trades">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round" class="mr-1.5">
+                                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
+                                        <polyline points="14 2 14 8 20 8"/>
+                                        <path d="M9.5 16h5"/>
+                                        <path d="M8 12h8"/>
+                                    </svg> Simulated
+                                </a>
                                 <a href="#withdrawals-section"
                                     class="inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors hover:bg-white/10 text-muted-foreground hover:text-foreground h-8 px-2"
                                     title="Go to Withdrawals">
@@ -7927,6 +7939,20 @@
                 <div class="flex flex-col items-center justify-center py-12 text-muted-foreground space-y-4">
                     <div class="spinner"></div>
                     <p>Scanning exposure...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Simulated Positions -->
+        <div id="simluated-section" class="glass-panel rounded-xl p-6 relative overflow-hidden scroll-m-24"
+            style="margin-bottom: 32px; border-color: rgba(62, 168, 255, 0.2);">
+            <div
+                class="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 flex items-center justify-between" style="color: #3ea8ff;">
+                SIMULATED TRADES (DRY RUN)</div>
+            <div id="simulatedPositionsList" class="data-table-wrapper">
+                <div class="flex flex-col items-center justify-center py-12 text-muted-foreground space-y-4">
+                    <div class="spinner" style="border-top-color: #3ea8ff;"></div>
+                    <p>Fetching simulations...</p>
                 </div>
             </div>
         </div>

@@ -19,6 +19,7 @@ document.addEventListener('DOMContentLoaded', function () {
         loadStatus();
         loadPortfolioStats();
         loadPositions();
+        loadSimulatedPositions();
     }, 500);
 });
 
@@ -97,12 +98,20 @@ async function toggleDryRun() {
 async function loadStatus() {
     try {
         const response = await fetch('/api/status');
-        const status = await response.json();
+        const data = await response.json();
+
+        isBotRunning = data.running;
+        isDryRun = data.dry_run;
+        
+        // Save funder address for linking
+        if (data.funder_address) {
+            window.ourAddress = data.funder_address;
+        }
 
         const indicator = document.getElementById('statusIndicator');
         const text = document.getElementById('statusText');
 
-        if (status.running) {
+        if (data.running) {
             indicator.className = 'status-indicator running';
             text.textContent = 'Bot Running';
             document.getElementById('startBtn').disabled = true;
@@ -209,15 +218,36 @@ async function loadPositions() {
                         <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50" class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Cost</th>
                         <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50" class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Value</th>
                         <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50" class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">P&L</th>
+                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50" class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Copied From</th>
                         <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50" style="text-align: right;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
-                    ${positions.map(pos => `
+                    ${positions.map(pos => {
+                        // Build copied_from links
+                        let copiedLinks = '-';
+                        if (pos.copied_from) {
+                            const wallets = pos.copied_from.split(',');
+                            copiedLinks = wallets.map(w => {
+                                const trimW = w.trim();
+                                const short = trimW.substring(0, 6) + '...' + trimW.substring(trimW.length - 4);
+                                return \`<a href="https://polymarket.com/profile/\${trimW}" target="_blank" class="text-blue-400 hover:text-blue-300 underline text-xs">\${short}</a>\`;
+                            }).join(', ');
+                        }
+                        
+                        // Build our profile link
+                        const ourProfileLink = window.ourAddress ? \`<a href="https://polymarket.com/profile/\${window.ourAddress}" target="_blank" class="text-xs text-muted-foreground hover:text-foreground inline-flex items-center ml-2" title="View Our Profile on Polymarket">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                        </a>\` : '';
+
+                        return \`
                         <tr class="group hover:bg-white/5 transition-colors">
                             <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors" class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
-                                <div style="font-weight: 600; color: #fff; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(pos.title || 'Unknown Market')}">
-                                    ${escapeHtml(pos.title || 'Unknown Market')}
+                                <div style="display: flex; align-items: center;">
+                                    <div style="font-weight: 600; color: #fff; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(pos.title || 'Unknown Market')}">
+                                        ${escapeHtml(pos.title || 'Unknown Market')}
+                                    </div>
+                                    ${ourProfileLink}
                                 </div>
                             </td>
                             <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors" class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
@@ -236,6 +266,9 @@ async function loadPositions() {
                                     ${pos.pnl_percent >= 0 ? '+' : ''}${pos.pnl_percent.toFixed(2)}%
                                 </div>
                             </td>
+                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors" class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
+                                ${copiedLinks}
+                            </td>
                             <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors" style="text-align: right;">
                                 <div style="display: flex; gap: 8px; justify-content: flex-end;">
                                     <button class="inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors border border-input bg-transparent shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-3" style="padding: 6px 12px; font-size: 11px;" onclick='showPartialSellModal(${JSON.stringify(pos)})'>
@@ -247,7 +280,8 @@ async function loadPositions() {
                                 </div>
                             </td>
                         </tr>
-                    `).join('')}
+                        `;
+                    }).join('')}
                 </tbody>
             </table>
         `;
@@ -261,6 +295,100 @@ async function loadPositions() {
         `;
     }
 }
+
+async function loadSimulatedPositions() {
+    try {
+        const response = await fetch('/api/simulated_positions');
+        const positions = await response.json();
+
+        const container = document.getElementById('simulatedPositionsList');
+
+        if (positions.length === 0) {
+            container.innerHTML = `
+                <div class="flex flex-col items-center justify-center p-8 text-center text-muted-foreground bg-white/5 rounded-xl border border-white/5" style="border-color: rgba(62, 168, 255, 0.1);">
+                    <div class="text-4xl mb-4 opacity-50">👻</div>
+                    <p style="color: #3ea8ff;">No simulated trades to display</p>
+                </div>
+            `;
+            return;
+        }
+
+        container.innerHTML = `
+            <table class="w-full text-sm text-left whitespace-nowrap">
+                <thead>
+                    <tr class="group hover:bg-white/5 transition-colors">
+                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Market</th>
+                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Outcome</th>
+                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Cost</th>
+                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Value</th>
+                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">P&L</th>
+                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Copied From</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${positions.map(pos => {
+                        // Build copied_from links
+                        let copiedLinks = '-';
+                        if (pos.copied_from) {
+                            const wallets = pos.copied_from.split(',');
+                            copiedLinks = wallets.map(w => {
+                                const trimW = w.trim();
+                                const short = trimW.substring(0, 6) + '...' + trimW.substring(trimW.length - 4);
+                                return \`<a href="https://polymarket.com/profile/\${trimW}" target="_blank" class="text-blue-400 hover:text-blue-300 underline text-xs">\${short}</a>\`;
+                            }).join(', ');
+                        }
+                        
+                        // Build our profile link
+                        const ourProfileLink = window.ourAddress ? \`<a href="https://polymarket.com/profile/\${window.ourAddress}" target="_blank" class="text-xs text-muted-foreground hover:text-foreground inline-flex items-center ml-2" title="View Our Profile on Polymarket">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+                        </a>\` : '';
+
+                        return \`
+                        <tr class="group hover:bg-white/5 transition-colors">
+                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
+                                <div style="display: flex; align-items: center;">
+                                    <div style="font-weight: 600; color: #fff; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(pos.title || 'Unknown Market')}">
+                                        ${escapeHtml(pos.title || 'Unknown Market')}
+                                    </div>
+                                    ${ourProfileLink}
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
+                                <div style="font-weight: 500;">${escapeHtml(pos.outcome || 'Unknown')}</div>
+                                <div style="font-size: 11px; color: var(--text-dim);">${pos.size.toFixed(2)} sh</div>
+                            </td>
+                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">${formatCurrency(pos.cost_basis)}</td>
+                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
+                                <div style="font-weight: 600;">${formatCurrency(pos.current_value)}</div>
+                            </td>
+                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
+                                <div class="${pos.pnl >= 0 ? 'positive' : 'negative'}">
+                                    ${formatCurrency(pos.pnl)}
+                                </div>
+                                <div class="${pos.pnl >= 0 ? 'positive' : 'negative'}" style="font-size: 11px;">
+                                    ${pos.pnl_percent >= 0 ? '+' : ''}${pos.pnl_percent.toFixed(2)}%
+                                </div>
+                            </td>
+                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
+                                ${copiedLinks}
+                            </td>
+                        </tr>
+                        `;
+                    }).join('')}
+                </tbody>
+            </table>
+        `;
+
+    } catch (error) {
+        console.error('Error loading simulated positions:', error);
+        document.getElementById('simulatedPositionsList').innerHTML = `
+            <div class="flex flex-col items-center justify-center p-8 text-center text-muted-foreground bg-white/5 rounded-xl border border-white/5">
+                <p style="color: #f56565;">Error loading simulated positions</p>
+            </div>
+        `;
+    }
+}
+
 
 async function loadAccounts() {
     try {
@@ -505,6 +633,7 @@ function refreshAll() {
     loadStatus();
     loadPortfolioStats();
     loadPositions();
+    loadSimulatedPositions();
     loadAccounts();
     loadWithdrawals();
 }
@@ -657,6 +786,7 @@ async function executeSell() {
             closeModal('partialSellModal');
             setTimeout(() => {
                 loadPositions();
+                loadSimulatedPositions();
                 loadPortfolioStats();
             }, 2000);
         } else {
