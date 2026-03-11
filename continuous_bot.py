@@ -455,10 +455,12 @@ class CopyTradingBot:
             # Check if we've already copied this trade
             if trade_id in self.seen_trades:
                 return
-            
             # SESSION LIMIT CHECK
             if self.trades_this_session >= MAX_TRADES_PER_SESSION:
                 logger.info(f"  [SESSION LIMIT] Reached max trades ({MAX_TRADES_PER_SESSION}). Skipping {name}'s trade on {title}.")
+                if trade_id: # Only add if trade_id is valid
+                    self.seen_trades.add(trade_id)
+                    self.save_seen_trades()
                 return
             
             # EVENT LIMIT CHECK
@@ -478,8 +480,8 @@ class CopyTradingBot:
                     conn.close()
                     
                     if event_trade_count >= MAX_TRADES_PER_EVENT:
-                        print(f"  [EVENT LIMIT] Already traded '{title}' ({outcome}) {event_trade_count} times. Limit is {MAX_TRADES_PER_EVENT}. Skipping.")
-                        if trade_id and trade_id not in self.seen_trades:
+                        logger.info(f"  [EVENT LIMIT] Reached max trades for this event ({MAX_TRADES_PER_EVENT}). Skipping.")
+                        if trade_id: # Only add if trade_id is valid
                             self.seen_trades.add(trade_id)
                             self.save_seen_trades()
                         return
@@ -533,8 +535,7 @@ class CopyTradingBot:
                 if address in self.stats["accounts"]:
                     self.stats["accounts"][address]["trades_copied"] += 1
                 
-                self.trades_this_session += 1  # Increment session counter
-                print(f"  [SESSION] Trades this session: {self.trades_this_session}/{MAX_TRADES_PER_SESSION}")
+                print(f"  [SESSION] Dry run trade logged.")
                 
             else:
                 print(f"  ⚡ LIVE MODE - Executing trade...")
@@ -682,9 +683,11 @@ class CopyTradingBot:
         try:
             while self.running:
                 try:
-                    print(f"\r[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Checking {enabled_count} accounts... (Press Ctrl+C to stop)", end="", flush=True)
+                    status_msg = f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Checking {enabled_count} accounts... (Press Ctrl+C to stop)"
+                    print(f"\r{status_msg.ljust(100)}", end="\r", flush=True)
                     self.check_and_copy()
-                    print(f"\r[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Finished check. Sleeping {check_interval}s...                      ", end="", flush=True)
+                    sleep_msg = f"[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Finished check. Sleeping {check_interval}s..."
+                    print(f"\r{sleep_msg.ljust(100)}", end="\r", flush=True)
                     time.sleep(check_interval)
                 except Exception as e:
                     logger.exception(f"CRITICAL ERROR in main loop: {e}")
