@@ -49,6 +49,22 @@ log = logging.getLogger('werkzeug')
 log.setLevel(logging.INFO)
 log.addFilter(NoSpamFilter())
 
+# ---- USDC Balance: RPC Fallback Chain + Cache ----
+# Ordered list of reliable free Polygon RPCs; bot cycles to next on failure
+POLYGON_RPCS = [
+    'https://polygon-rpc.com',                      # 1 - Official Polygon RPC
+    'https://rpc-mainnet.matic.quiknode.pro',        # 2 - QuickNode public
+    'https://rpc.ankr.com/polygon',                 # 3 - Ankr (very reliable)
+    'https://polygon.drpc.org',                     # 4 - dRPC
+    'https://polygon-mainnet.public.blastapi.io',   # 5 - Blast API
+    'https://1rpc.io/matic',                        # 6 - 1RPC
+]
+
+_rpc_index = 0          # current RPC in use
+_balance_cache = None   # last successfully fetched balance (float)
+_balance_ts = 0.0       # unix timestamp of last successful fetch
+
+
 # Bot instance (will be imported)
 bot_instance = None
 bot_thread = None
@@ -124,93 +140,94 @@ def get_positions():
         return []
 
 
+def _fetch_usdc_balance_with_fallback():
+    """Try each RPC in POLYGON_RPCS in order, rotating to the next on failure.
+    Returns the float USDC balance, or None if all RPCs fail."""
+    global _rpc_index
+    from web3 import Web3
+
+    usdc_address = Web3.to_checksum_address('0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174')
+    erc20_abi = [{
+        "constant": True,
+        "inputs": [{"name": "_owner", "type": "address"}],
+        "name": "balanceOf",
+        "outputs": [{"name": "balance", "type": "uint256"}],
+        "type": "function"
+    }]
+    user_address = Web3.to_checksum_address(FUNDER_ADDRESS)
+
+    # Try every RPC starting from the current index
+    total = len(POLYGON_RPCS)
+    for attempt in range(total):
+        rpc = POLYGON_RPCS[_rpc_index % total]
+        try:
+            w3 = Web3(Web3.HTTPProvider(rpc, request_kwargs={'timeout': 5}))
+            contract = w3.eth.contract(address=usdc_address, abi=erc20_abi)
+            raw = contract.functions.balanceOf(user_address).call()
+            balance = raw / 1_000_000
+            logger.debug(f"[RPC {_rpc_index % total + 1}/{total}] Fetched balance {balance:.2f} USDC via {rpc}")
+            return balance          # success – keep current RPC index
+        except Exception as e:
+            logger.debug(f"[RPC {_rpc_index % total + 1}/{total}] {rpc} failed: {e}")
+            _rpc_index += 1         # rotate to next RPC for this and future attempts
+
+    return None  # all RPCs failed
+
+
 def get_portfolio_stats():
     """Calculate overall portfolio statistics and fetch USDC balance"""
+    global _balance_cache, _balance_ts
+    import time
+
     try:
         balance = 0
-        
-        # Method 1: Try using authenticated CLOB client
+
+        # Method 1: Try using authenticated CLOB client (kept for compatibility)
         try:
-            logger.debug("[DEBUG] Attempting to fetch balance using CLOB client...")
             client = get_clob_client()
-            
-            # Try the get_balance_allowance method
             try:
                 bal_data = client.get_balance_allowance()
-                logger.debug(f"[DEBUG] get_balance_allowance() returned: {bal_data}")
-                
-                # Logic to extract balance from response
                 if isinstance(bal_data, dict):
                     for key in ['balance', 'available_balance', 'total_balance']:
                         if key in bal_data:
                             balance = float(bal_data[key]) / 10**6
-                            logger.debug(f"[DEBUG] Extracted balance from '{key}': {balance} USDC")
                             break
                 elif hasattr(bal_data, 'balance'):
                     balance = float(bal_data.balance) / 10**6
             except Exception:
-                logger.debug("[DEBUG] get_balance_allowance() method not available")
                 try:
                     bal_data = client.get_balance()
-                    logger.debug(f"[DEBUG] get_balance() returned: {bal_data}")
                     if isinstance(bal_data, (int, float)):
                         balance = float(bal_data) / 10**6
                     elif isinstance(bal_data, dict) and 'balance' in bal_data:
                         balance = float(bal_data['balance']) / 10**6
-                        logger.debug(f"[DEBUG] Balance from get_balance() dict: {balance} USDC")
                     elif hasattr(bal_data, 'balance'):
                         balance = float(bal_data.balance) / 10**6
-                        logger.debug(f"[DEBUG] Balance from get_balance() dict: {balance} USDC")
                 except Exception:
-                    logger.debug("[DEBUG] get_balance() method not available")
-            
-            if balance == 0:
-                 logger.debug(f"[DEBUG] CLOB client balance fetch failed or zero")
-        
-        except Exception as e:
-            logger.debug(f"[DEBUG] CLOB client balance fetch failed: {e}")
-        
-        # Method 2: Check blockchain directly using web3 (most reliable since REST endpoints were deprecated)
+                    pass
+        except Exception:
+            pass
+
+        # Method 2: Blockchain with RPC fallback chain
         if balance == 0:
             try:
-                # print(f"[DEBUG] Attempting direct blockchain balance check...")
-                from web3 import Web3
-                
-                # Connect to Polygon RPC (using dRPC for reliable public access)
-                w3 = Web3(Web3.HTTPProvider('https://polygon.drpc.org'))
-                
-                # USDC contract on Polygon
-                usdc_address = Web3.to_checksum_address('0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174')
-                
-                # ERC20 ABI for balanceOf
-                erc20_abi = [
-                    {
-                        "constant": True,
-                        "inputs": [{"name": "_owner", "type": "address"}],
-                        "name": "balanceOf",
-                        "outputs": [{"name": "balance", "type": "uint256"}],
-                        "type": "function"
-                    }
-                ]
-                
-                usdc_contract = w3.eth.contract(address=usdc_address, abi=erc20_abi)
-                user_address = Web3.to_checksum_address(FUNDER_ADDRESS)
-                
-                raw_balance = usdc_contract.functions.balanceOf(user_address).call()
-                balance = raw_balance / 1_000_000  # USDC has 6 decimals
-                
-                logger.debug(f"[DEBUG] Blockchain balance: {balance} USDC (raw: {raw_balance})")
+                fetched = _fetch_usdc_balance_with_fallback()
+                if fetched is not None:
+                    balance = fetched
+                    _balance_cache = balance        # update cache with fresh value
+                    _balance_ts = time.time()
+                elif _balance_cache is not None:
+                    # All RPCs failed – use cached value silently
+                    balance = _balance_cache
+                    logger.debug(f"[Balance] All RPCs failed, using cached {balance:.2f} USDC")
+                else:
+                    logger.warning("[WARNING] Could not fetch balance from any RPC and no cache available.")
             except ImportError:
-                logger.debug("[DEBUG] web3 not installed - skipping blockchain check")
-                logger.debug("[DEBUG] Install with: pip install web3")
-            except Exception as e:
-                logger.debug(f"[DEBUG] Blockchain balance check failed: {e}")
-        
-        if balance == 0:
-            logger.warning("[WARNING] Could not fetch balance from any source!")
-            logger.info("[INFO] Make sure you have USDC in your wallet on Polygon network")
-        
-        # ---------------------------------
+                logger.debug("[DEBUG] web3 not installed – skipping blockchain balance check")
+        else:
+            # CLOB succeeded – also update cache
+            _balance_cache = balance
+            _balance_ts = time.time()
 
         positions = get_positions()
         
