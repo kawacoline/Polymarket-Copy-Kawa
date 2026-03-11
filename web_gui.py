@@ -74,8 +74,8 @@ class ClobLibFilter(logging.Filter):
             return False
         return True
 
-for _lib_name in ['py_clob_client', 'polymarket', 'clob_client', 'root']:
-    logging.getLogger(_lib_name if _lib_name != 'root' else '').addFilter(ClobLibFilter())
+for _lib_name in ['py_clob_client', 'polymarket', 'clob_client']:
+    logging.getLogger(_lib_name).addFilter(ClobLibFilter())
 
 # ---- USDC Balance: RPC Fallback Chain + Cache ----
 # Ordered list of reliable free Polygon RPCs; bot cycles to next on failure
