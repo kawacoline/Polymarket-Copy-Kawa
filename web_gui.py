@@ -65,17 +65,10 @@ def _log_counted(logger_fn, msg):
     if count == 1:
         logger_fn(msg)
 
-# Filter CLOB library spam through the counter instead of letting it flood
-class ClobLibFilter(logging.Filter):
-    def filter(self, record):
-        msg = record.getMessage()
-        if 'Make sure you have USDC' in msg or 'USDC in your wallet' in msg:
-            _log_counted(lambda m: None, msg)  # just count, don't re-log
-            return False
-        return True
-
+# Suppress noisy library loggers (py_clob_client prints "Make sure you have USDC" every call)
+# These only affect the library's own loggers, not our app
 for _lib_name in ['py_clob_client', 'polymarket', 'clob_client']:
-    logging.getLogger(_lib_name).addFilter(ClobLibFilter())
+    logging.getLogger(_lib_name).setLevel(logging.CRITICAL)
 
 # ---- USDC Balance: RPC Fallback Chain + Cache ----
 # Ordered list of reliable free Polygon RPCs; bot cycles to next on failure
