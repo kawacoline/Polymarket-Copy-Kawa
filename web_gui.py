@@ -168,7 +168,6 @@ def get_portfolio_stats():
                  logger.debug(f"[DEBUG] CLOB client balance fetch failed or zero")
         
         except Exception as e:
-            import traceback; traceback.print_exc()
             logger.debug(f"[DEBUG] CLOB client balance fetch failed: {e}")
         
         # Method 2: Check blockchain directly using web3 (most reliable since REST endpoints were deprecated)
@@ -205,7 +204,6 @@ def get_portfolio_stats():
                 logger.debug("[DEBUG] web3 not installed - skipping blockchain check")
                 logger.debug("[DEBUG] Install with: pip install web3")
             except Exception as e:
-                import traceback; traceback.print_exc()
                 logger.debug(f"[DEBUG] Blockchain balance check failed: {e}")
         
         if balance == 0:
@@ -247,7 +245,6 @@ def get_portfolio_stats():
             "closed_positions": closed_count
         }    
     except Exception as e:
-        import traceback; traceback.print_exc()
         print(f"Error calculating portfolio stats: {e}")
         return {
             "open_positions": 0,
@@ -278,7 +275,6 @@ def save_withdrawals(withdrawals):
         with open(WITHDRAWALS_FILE, 'w') as f:
             json.dump(withdrawals, f, indent=2)
     except Exception as e:
-        import traceback; traceback.print_exc()
         print(f"Error saving withdrawals: {e}")
 
 
@@ -405,7 +401,6 @@ def stop_bot():
             return jsonify({"error": "Bot not running"}), 400
     
     except Exception as e:
-        import traceback; traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
@@ -424,7 +419,6 @@ def toggle_dry_run():
         return jsonify({"success": True, "dry_run": dry_run})
     
     except Exception as e:
-        import traceback; traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
@@ -436,7 +430,6 @@ def api_get_positions():
         return jsonify(positions)
     
     except Exception as e:
-        import traceback; traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
@@ -448,7 +441,6 @@ def api_portfolio_stats():
         return jsonify(stats)
     
     except Exception as e:
-        import traceback; traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
@@ -488,7 +480,6 @@ def close_position():
         })
     
     except Exception as e:
-        import traceback; traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
@@ -540,7 +531,6 @@ def api_panic_sell():
                     })
             
             except Exception as e:
-                import traceback; traceback.print_exc()
                 errors.append({
                     "title": pos.get("title", "Unknown"),
                     "error": str(e)
@@ -554,7 +544,6 @@ def api_panic_sell():
         })
     
     except Exception as e:
-        import traceback; traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
@@ -566,7 +555,6 @@ def api_get_withdrawals():
         return jsonify(withdrawals)
     
     except Exception as e:
-        import traceback; traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
@@ -597,7 +585,6 @@ def api_add_withdrawal():
         return jsonify({"success": True, "withdrawal": withdrawal})
     
     except Exception as e:
-        import traceback; traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
@@ -631,7 +618,6 @@ def api_search_withdrawals():
         })
     
     except Exception as e:
-        import traceback; traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
@@ -647,7 +633,6 @@ def api_get_accounts():
         return jsonify(accounts)
     
     except Exception as e:
-        import traceback; traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
@@ -700,7 +685,6 @@ def api_add_account():
         return jsonify({"success": True, "message": "Account added successfully"})
     
     except Exception as e:
-        import traceback; traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
@@ -722,7 +706,6 @@ def api_remove_account(address):
         return jsonify({"success": True, "message": "Account removed"})
     
     except Exception as e:
-        import traceback; traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
@@ -758,7 +741,6 @@ def api_toggle_account(address):
         return jsonify({"success": True, "enabled": enabled})
     
     except Exception as e:
-        import traceback; traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
@@ -820,7 +802,6 @@ def export_positions():
         )
     
     except Exception as e:
-        import traceback; traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
@@ -898,7 +879,6 @@ def export_history():
         )
     
     except Exception as e:
-        import traceback; traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
@@ -1019,7 +999,6 @@ def export_full_report():
         )
     
     except Exception as e:
-        import traceback; traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 

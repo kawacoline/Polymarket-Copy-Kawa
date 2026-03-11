@@ -97,7 +97,6 @@ class CopyTradingBot:
                         data = json.loads(content)
                         accounts = data.get("accounts", [])
         except Exception as e:
-            import traceback; traceback.print_exc()
             print(f"Error loading accounts: {e}")
         
         # Fallback: check if old TARGET_ADDRESS env exists and add it if not already in list
@@ -380,7 +379,6 @@ class CopyTradingBot:
             conn.close()
             
         except Exception as e:
-            import traceback; traceback.print_exc()
             print(f"Warning: Could not log to database: {e}")
     
     def place_bet(self, token_id: str, dollar_amount: float, price: float):
@@ -486,7 +484,6 @@ class CopyTradingBot:
                             self.save_seen_trades()
                         return
             except Exception as e:
-                import traceback; traceback.print_exc()
                 print(f"  Warning: Could not check event limit: {e}")
             
             # This is a new trade to copy!
@@ -525,7 +522,6 @@ class CopyTradingBot:
                         copied_from=address
                     )
                 except Exception as e:
-                    import traceback; traceback.print_exc()
                     print(f"  Warning: Could not log dry run trade to database: {e}")
                 
                 # Update stats for dry run
@@ -602,7 +598,6 @@ class CopyTradingBot:
             self.update_status(log_msg)
             
         except Exception as e:
-            import traceback; traceback.print_exc()
             error_msg = f"Error checking {name}: {str(e)}"
             print(error_msg)
     
@@ -641,7 +636,6 @@ class CopyTradingBot:
             self.update_status(f"Checked {len(enabled_accounts)} accounts")
             
         except Exception as e:
-            import traceback; traceback.print_exc()
             error_msg = f"Error in check cycle: {str(e)}"
             print(error_msg)
             self.update_status(error_msg)
@@ -699,7 +693,6 @@ class CopyTradingBot:
             self.update_status("Bot stopped by user")
         
         except Exception as e:
-            import traceback; traceback.print_exc()
             logger.error(f"\n\n❌ Bot error: {e}")
             self.running = False
             self.update_status(f"Bot stopped due to error: {str(e)}")
@@ -754,7 +747,6 @@ class CopyTradingBot:
                         print(f"[OK] Closed position: {title} ({size} shares)")
                 
                 except Exception as e:
-                    import traceback; traceback.print_exc()
                     print(f"[X] Failed to close {title}: {e}")
             
             return {
@@ -764,7 +756,6 @@ class CopyTradingBot:
             }
         
         except Exception as e:
-            import traceback; traceback.print_exc()
             return {"success": False, "message": f"Panic sell failed: {str(e)}"}
 
 
