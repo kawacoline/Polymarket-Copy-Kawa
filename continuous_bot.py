@@ -488,7 +488,7 @@ class CopyTradingBot:
                 print(f"  Warning: Could not check event limit: {e}")
             
             # This is a new trade to copy!
-            log_msg = f"[{datetime.now().strftime('%H:%M:%S')}] 📋 New trade from {name}:"
+            log_msg = f"[{datetime.now().strftime('%H:%M:%S')}] [NEW] New trade from {name}:"
             print(f"\n{log_msg}")
             print(f"  Market: {title}")
             print(f"  Outcome: {outcome}")
@@ -500,12 +500,12 @@ class CopyTradingBot:
                 shares = bet_amount / price
                 print(f"  Shares: {shares:.2f}")
             else:
-                print(f"  ✗ Invalid price: {price}")
+                print(f"  [X] Invalid price: {price}")
                 return
             
             if self.dry_run:
-                print(f"  ✓ DRY RUN - Would copy this trade")
-                log_msg += f" ✓ DRY RUN - Would copy"
+                print(f"  [OK] DRY RUN - Would copy this trade")
+                log_msg += f" [OK] DRY RUN - Would copy"
                 
                 # Log dry run trade to database
                 try:
@@ -540,8 +540,8 @@ class CopyTradingBot:
                 print(f"  ⚡ LIVE MODE - Executing trade...")
                 try:
                     self.place_bet(asset_id, bet_amount, price)
-                    log_msg += f" ✓ COPIED"
-                    print(f"  ✓ Trade executed successfully!")
+                    log_msg += f" [OK] COPIED"
+                    print(f"  [OK] Trade executed successfully!")
                     
                     # Update stats
                     self.stats["total_copied"] += 1
@@ -573,7 +573,7 @@ class CopyTradingBot:
                         
                 except Exception as e:
                     logger.exception(f"Error executing trade: {e}")
-                    log_msg += f" ✗ FAILED: {str(e)}"
+                    log_msg += f" [X] FAILED: {str(e)}"
                     logger.error(log_msg)
                     self.stats["failed_copies"] += 1
             
@@ -671,9 +671,9 @@ class CopyTradingBot:
         enabled_count = sum(1 for acc in self.target_accounts if acc.get("enabled", True))
         
         logger.info("\n" + "="*50)
-        logger.info("  🚀 Polymarket Copy Trading Bot Started")
+        logger.info("  --> Polymarket Copy Trading Bot Started")
         logger.info(f"  Funder: {FUNDER_ADDRESS}")
-        logger.info(f"  Dry Run: {DRY_RUN}")
+        logger.info(f"  Dry Run: {self.dry_run}")
         logger.info(f"  Interval: {check_interval}s")
         logger.info("="*50 + "\n")
         
@@ -748,11 +748,11 @@ class CopyTradingBot:
                             "size": size
                         })
                         
-                        print(f"✓ Closed position: {title} ({size} shares)")
+                        print(f"[OK] Closed position: {title} ({size} shares)")
                 
                 except Exception as e:
                     import traceback; traceback.print_exc()
-                    print(f"✗ Failed to close {title}: {e}")
+                    print(f"[X] Failed to close {title}: {e}")
             
             return {
                 "success": True,

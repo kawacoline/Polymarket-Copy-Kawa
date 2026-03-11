@@ -11,8 +11,8 @@ def setup_logger(name="PolymarketBot"):
         
         # Create handlers
         c_handler = logging.StreamHandler()
-        f_handler = logging.FileHandler('logs/bot.log')
-        e_handler = logging.FileHandler('logs/error.log')
+        f_handler = logging.FileHandler('logs/bot.log', encoding='utf-8')
+        e_handler = logging.FileHandler('logs/error.log', encoding='utf-8')
         
         c_handler.setLevel(logging.INFO)
         f_handler.setLevel(logging.INFO)
