@@ -213,12 +213,12 @@ async function loadPositions() {
             <table class="w-full text-sm text-left whitespace-nowrap">
                 <thead>
                     <tr class="group hover:bg-white/5 transition-colors">
-                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50" class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Market</th>
-                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50" class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Outcome</th>
-                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50" class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Cost</th>
-                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50" class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Value</th>
-                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50" class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">P&L</th>
-                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50" class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Copied From</th>
+                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Market</th>
+                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Outcome</th>
+                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Cost</th>
+                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Value</th>
+                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">P&L</th>
+                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Copied From</th>
                         <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50" style="text-align: right;">Actions</th>
                     </tr>
                 </thead>
@@ -231,18 +231,18 @@ async function loadPositions() {
                             copiedLinks = wallets.map(w => {
                                 const trimW = w.trim();
                                 const short = trimW.substring(0, 6) + '...' + trimW.substring(trimW.length - 4);
-                                return \`<a href="https://polymarket.com/profile/\${trimW}" target="_blank" class="text-blue-400 hover:text-blue-300 underline text-xs">\${short}</a>\`;
+                                return `<a href="https://polymarket.com/profile/${trimW}" target="_blank" class="text-blue-400 hover:text-blue-300 underline text-xs">${short}</a>`;
                             }).join(', ');
                         }
                         
                         // Build our profile link
-                        const ourProfileLink = window.ourAddress ? \`<a href="https://polymarket.com/profile/\${window.ourAddress}" target="_blank" class="text-xs text-muted-foreground hover:text-foreground inline-flex items-center ml-2" title="View Our Profile on Polymarket">
+                        const ourProfileLink = window.ourAddress ? `<a href="https://polymarket.com/profile/${window.ourAddress}" target="_blank" class="text-xs text-muted-foreground hover:text-foreground inline-flex items-center ml-2" title="View Our Profile on Polymarket">
                             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                        </a>\` : '';
+                        </a>` : '';
 
-                        return \`
+                        return `
                         <tr class="group hover:bg-white/5 transition-colors">
-                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors" class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
+                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
                                 <div style="display: flex; align-items: center;">
                                     <div style="font-weight: 600; color: #fff; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(pos.title || 'Unknown Market')}">
                                         ${escapeHtml(pos.title || 'Unknown Market')}
@@ -250,15 +250,15 @@ async function loadPositions() {
                                     ${ourProfileLink}
                                 </div>
                             </td>
-                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors" class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
+                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
                                 <div style="font-weight: 500;">${escapeHtml(pos.outcome || 'Unknown')}</div>
                                 <div style="font-size: 11px; color: var(--text-dim);">${pos.size.toFixed(2)} sh</div>
                             </td>
-                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors" class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">${formatCurrency(pos.cost_basis)}</td>
-                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors" class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
+                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">${formatCurrency(pos.cost_basis)}</td>
+                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
                                 <div style="font-weight: 600;">${formatCurrency(pos.current_value)}</div>
                             </td>
-                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors" class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
+                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
                                 <div class="${pos.pnl >= 0 ? 'positive' : 'negative'}">
                                     ${formatCurrency(pos.pnl)}
                                 </div>
@@ -266,7 +266,7 @@ async function loadPositions() {
                                     ${pos.pnl_percent >= 0 ? '+' : ''}${pos.pnl_percent.toFixed(2)}%
                                 </div>
                             </td>
-                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors" class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
+                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
                                 ${copiedLinks}
                             </td>
                             <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors" style="text-align: right;">
@@ -334,16 +334,16 @@ async function loadSimulatedPositions() {
                             copiedLinks = wallets.map(w => {
                                 const trimW = w.trim();
                                 const short = trimW.substring(0, 6) + '...' + trimW.substring(trimW.length - 4);
-                                return \`<a href="https://polymarket.com/profile/\${trimW}" target="_blank" class="text-blue-400 hover:text-blue-300 underline text-xs">\${short}</a>\`;
+                                 return `<a href="https://polymarket.com/profile/${trimW}" target="_blank" class="text-blue-400 hover:text-blue-300 underline text-xs">${short}</a>`;
                             }).join(', ');
                         }
                         
                         // Build our profile link
-                        const ourProfileLink = window.ourAddress ? \`<a href="https://polymarket.com/profile/\${window.ourAddress}" target="_blank" class="text-xs text-muted-foreground hover:text-foreground inline-flex items-center ml-2" title="View Our Profile on Polymarket">
+                        const ourProfileLink = window.ourAddress ? `<a href="https://polymarket.com/profile/${window.ourAddress}" target="_blank" class="text-xs text-muted-foreground hover:text-foreground inline-flex items-center ml-2" title="View Our Profile on Polymarket">
                             <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                        </a>\` : '';
+                        </a>` : '';
 
-                        return \`
+                        return `
                         <tr class="group hover:bg-white/5 transition-colors">
                             <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
                                 <div style="display: flex; align-items: center;">
