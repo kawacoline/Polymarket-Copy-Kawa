@@ -49,9 +49,33 @@ log = logging.getLogger('werkzeug')
 log.setLevel(logging.INFO)
 log.addFilter(NoSpamFilter())
 
-# Silence noisy py_clob_client library warnings ("Make sure you have USDC...")
-for _lib_logger_name in ['py_clob_client', 'polymarket', 'clob_client']:
-    logging.getLogger(_lib_logger_name).setLevel(logging.CRITICAL)
+# Counter-based log dedup: repeated messages get a [xN] suffix on a single line
+_log_counters = {}  # msg -> count
+
+def _log_counted(logger_fn, msg):
+    """Log a message with an in-place counter for repeats."""
+    import sys
+    _log_counters[msg] = _log_counters.get(msg, 0) + 1
+    count = _log_counters[msg]
+    tag = f" [x{count}]" if count > 1 else ""
+    # Overwrite the same terminal line to avoid spam
+    sys.stdout.write(f"\r{msg}{tag}" + " " * 20)
+    sys.stdout.flush()
+    # Only log to file on first occurrence
+    if count == 1:
+        logger_fn(msg)
+
+# Filter CLOB library spam through the counter instead of letting it flood
+class ClobLibFilter(logging.Filter):
+    def filter(self, record):
+        msg = record.getMessage()
+        if 'Make sure you have USDC' in msg or 'USDC in your wallet' in msg:
+            _log_counted(lambda m: None, msg)  # just count, don't re-log
+            return False
+        return True
+
+for _lib_name in ['py_clob_client', 'polymarket', 'clob_client', 'root']:
+    logging.getLogger(_lib_name if _lib_name != 'root' else '').addFilter(ClobLibFilter())
 
 # ---- USDC Balance: RPC Fallback Chain + Cache ----
 # Ordered list of reliable free Polygon RPCs; bot cycles to next on failure
@@ -289,7 +313,7 @@ def get_portfolio_stats():
                     balance = _balance_cache
                     logger.debug(f"[Balance] All RPCs failed, using cached {balance:.2f} USDC")
                 else:
-                    logger.warning("[WARNING] Could not fetch balance from any RPC and no cache available.")
+                    _log_counted(logger.warning, "[WARNING] Could not fetch balance from any source")
             except ImportError:
                 logger.debug("[DEBUG] web3 not installed – skipping blockchain balance check")
         else:
