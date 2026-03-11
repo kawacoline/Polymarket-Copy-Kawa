@@ -1,6 +1,7 @@
 // Global state
 let currentSellPosition = null;
 let currentWalletView = 'grid-5';
+let currentWalletFilter = 'all';
 window.allAccounts = [];
 window.accountStats = {};
 window.expandedNames = window.expandedNames || {};
@@ -286,6 +287,23 @@ function filterWallets() {
     renderAccounts();
 }
 
+function setWalletFilter(filter) {
+    currentWalletFilter = filter;
+
+    // Update button states
+    document.querySelectorAll('.filter-btn').forEach(btn => {
+        if (btn.dataset.filter === filter) {
+            btn.classList.add('bg-white/10', 'text-foreground');
+            btn.classList.remove('hover:bg-white/10', 'text-muted-foreground');
+        } else {
+            btn.classList.add('hover:bg-white/10', 'text-muted-foreground');
+            btn.classList.remove('bg-white/10', 'text-foreground');
+        }
+    });
+
+    renderAccounts();
+}
+
 function setWalletView(viewClass) {
     currentWalletView = viewClass;
 
@@ -311,9 +329,16 @@ function renderAccounts() {
 
     // Filter
     const filteredAccounts = window.allAccounts.filter(account => {
+        // Toggle Filter
+        const isEnabled = account.enabled !== false; // Default to true if undefined
+        if (currentWalletFilter === 'enabled' && !isEnabled) return false;
+        if (currentWalletFilter === 'disabled' && isEnabled) return false;
+
+        // Search Filter
         const nameMatch = (account.name || '').toLowerCase().includes(searchTerm);
         const addrMatch = (account.address || '').toLowerCase().includes(searchTerm);
         const tagMatch = (account.tags || []).some(t => t.toLowerCase().includes(searchTerm));
+        
         return nameMatch || addrMatch || tagMatch;
     });
 

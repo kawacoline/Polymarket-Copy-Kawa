@@ -7828,6 +7828,26 @@
                             oninput="filterWallets()">
                     </div>
 
+                    <!-- Filter Toggles -->
+                    <div class="flex items-center rounded-md border border-white/10 bg-black/20 p-0.5 shrink-0"
+                        id="walletFilterControls">
+                        <button
+                            class="filter-btn view-btn-active bg-white/10 text-foreground shadow-sm p-1.5 px-3 rounded-sm transition-colors text-xs font-medium"
+                            data-filter="all" onclick="setWalletFilter('all')" title="Show All Wallets">
+                            All
+                        </button>
+                        <button
+                            class="filter-btn p-1.5 px-3 rounded-sm hover:bg-white/10 text-muted-foreground hover:text-foreground transition-colors text-xs font-medium"
+                            data-filter="enabled" onclick="setWalletFilter('enabled')" title="Show Enabled Only">
+                            Enabled
+                        </button>
+                        <button
+                            class="filter-btn p-1.5 px-3 rounded-sm hover:bg-white/10 text-muted-foreground hover:text-foreground transition-colors text-xs font-medium"
+                            data-filter="disabled" onclick="setWalletFilter('disabled')" title="Show Disabled Only">
+                            Disabled
+                        </button>
+                    </div>
+
                     <!-- View Toggles -->
                     <div class="flex items-center rounded-md border border-white/10 bg-black/20 p-0.5 shrink-0"
                         id="walletViewControls">
