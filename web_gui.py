@@ -37,6 +37,11 @@ ACCOUNTS_FILE = "accounts.json"
 
 app = Flask(__name__)
 
+# Suppress Werkzeug access logs
+import logging
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.ERROR)
+
 # Bot instance (will be imported)
 bot_instance = None
 bot_thread = None

@@ -682,9 +682,9 @@ class CopyTradingBot:
         try:
             while self.running:
                 try:
-                    logger.info(f"\n[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Checking all accounts...")
+                    print(f"\r[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Checking {enabled_count} accounts... (Press Ctrl+C to stop)", end="", flush=True)
                     self.check_and_copy()
-                    logger.info(f"Finished check. Sleeping for {check_interval}s...")
+                    print(f"\r[{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}] Finished check. Sleeping {check_interval}s...                      ", end="", flush=True)
                     time.sleep(check_interval)
                 except Exception as e:
                     logger.exception(f"CRITICAL ERROR in main loop: {e}")
