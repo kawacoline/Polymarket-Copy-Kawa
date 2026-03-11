@@ -144,16 +144,15 @@ def get_positions():
 def get_simulated_positions():
     try:
         import sqlite3
-        conn = sqlite3.connect(DB_PATH)
+        import os
+        sim_db_path = "simulated_history.db"
+        
+        if not os.path.exists(sim_db_path):
+            return []
+            
+        conn = sqlite3.connect(sim_db_path)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
-        
-        # Check if the column exists first
-        try:
-            cursor.execute("SELECT is_dry_run FROM trades LIMIT 1")
-        except sqlite3.OperationalError:
-            # Column doesn't exist yet, so no simulated trades
-            return []
             
         # Group trades by token to find net position for dry run trades
         cursor.execute("""
@@ -166,7 +165,6 @@ def get_simulated_positions():
                 SUM(CASE WHEN side = 'BUY' THEN size ELSE 0 END) as total_bought,
                 GROUP_CONCAT(DISTINCT copied_from) as copied_from
             FROM trades
-            WHERE is_dry_run = 1
             GROUP BY token_id, market_title, outcome
             HAVING net_size > 0.01
         """)
@@ -532,6 +530,26 @@ def api_get_simulated_positions():
         return jsonify(positions)
     
     except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/simulated_positions/clear', methods=['POST'])
+def api_clear_simulated_positions():
+    """Wipe all simulated trades"""
+    try:
+        import sqlite3
+        import os
+        sim_db_path = "simulated_history.db"
+        if os.path.exists(sim_db_path):
+            conn = sqlite3.connect(sim_db_path)
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM trades")
+            conn.commit()
+            conn.close()
+            return jsonify({"success": True, "message": "Simulated trades cleared."})
+        else:
+            return jsonify({"success": True, "message": "No simulated db found."})
+    except Exception as e:
+        logger.exception(f"Error clearing simulated DB: {e}")
         return jsonify({"error": str(e)}), 500
 
 

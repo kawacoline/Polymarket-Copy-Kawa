@@ -317,7 +317,7 @@ class CopyTradingBot:
             import sqlite3
             from pathlib import Path
             
-            db_path = Path("betting_history.db")
+            db_path = Path("simulated_history.db") if is_dry_run else Path("betting_history.db")
             
             # Create database and table if they don't exist
             conn = sqlite3.connect(db_path)

@@ -390,6 +390,21 @@ async function loadSimulatedPositions() {
 }
 
 
+async function clearSimulatedTrades() {
+    if (!confirm('Are you sure you want to clear all simulated trades? This cannot be undone.')) return;
+    try {
+        const response = await fetch('/api/simulated_positions/clear', { method: 'POST' });
+        const data = await response.json();
+        if (data.success) {
+            showNotification('Simulated trades cleared', 'success');
+            loadSimulatedPositions();
+        } else {
+            showNotification(data.error || 'Failed to clear', 'error');
+        }
+    } catch (error) {
+        showNotification('Error clearing simulated trades: ' + error.message, 'error');
+    }
+}
 async function loadAccounts() {
     try {
         const response = await fetch('/api/accounts');
