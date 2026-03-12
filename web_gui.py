@@ -40,35 +40,65 @@ app = Flask(__name__)
 # Filter out spammy dashboard polling from access logs
 import logging
 
-class NoSpamFilter(logging.Filter):
-    def filter(self, record):
-        msg = record.getMessage()
-        return not any(x in msg for x in ['GET /api/status', 'GET /api/positions', 'GET /api/portfolio'])
-
-log = logging.getLogger('werkzeug')
-log.setLevel(logging.INFO)
-log.addFilter(NoSpamFilter())
-
 # Counter-based log dedup: repeated messages get a [xN] suffix on a single line
-_log_counters = {}  # msg -> count
+_log_counters = {}  # key -> count
+_last_log_key = None # Track the last key types were printed
 
-def _log_counted(logger_fn, msg):
-    """Log a message with an in-place counter for repeats."""
+def _log_counted(logger_fn, msg, key=None):
+    """Log a message with an in-place counter for repeats, segmented by key."""
     import sys
-    _log_counters[msg] = _log_counters.get(msg, 0) + 1
-    count = _log_counters[msg]
+    
+    # Use msg as key if none provided
+    log_key = key or msg
+    
+    global _last_log_key
+    
+    # If we switch log types, move to a new line first
+    if _last_log_key is not None and _last_log_key != log_key:
+        sys.stdout.write("\n")
+        sys.stdout.flush()
+    
+    _log_counters[log_key] = _log_counters.get(log_key, 0) + 1
+    count = _log_counters[log_key]
     tag = f" [x{count}]" if count > 1 else ""
-    # Overwrite the same terminal line to avoid spam
-    sys.stdout.write(f"\r{msg}{tag}" + " " * 20)
+    
+    # Clear line and print with counter
+    sys.stdout.write(f"\r{msg}{tag}" + " " * 10)
     sys.stdout.flush()
+    
+    _last_log_key = log_key
+    
     # Only log to file on first occurrence
     if count == 1:
         logger_fn(msg)
 
+class DynamicAccessHandler(logging.Handler):
+    """Custom handler for Werkzeug to make access logs dynamic."""
+    def emit(self, record):
+        try:
+            msg = self.format(record)
+            # Standardize Flask log: "IP - - [Date] "Method URL..." 
+            # We want to group by "Method URL"
+            parts = msg.split('"')
+            if len(parts) >= 2:
+                request_info = parts[1] # e.g. "GET /api/status HTTP/1.1"
+                _log_counted(logger.info, msg, key=f"HTTP:{request_info}")
+            else:
+                _log_counted(logger.info, msg, key="HTTP:OTHER")
+        except Exception:
+            self.handleError(record)
+
 # Suppress noisy library loggers (py_clob_client prints "Make sure you have USDC" every call)
-# These only affect the library's own loggers, not our app
 for _lib_name in ['py_clob_client', 'polymarket', 'clob_client']:
     logging.getLogger(_lib_name).setLevel(logging.CRITICAL)
+
+# Configure Werkzeug for dynamic logs
+log = logging.getLogger('werkzeug')
+log.setLevel(logging.INFO)
+log.propagate = False  # Don't pass to root logger
+for h in log.handlers[:]:
+    log.removeHandler(h)
+log.addHandler(DynamicAccessHandler())
 
 # ---- USDC Balance: RPC Fallback Chain + Cache ----
 # Ordered list of reliable free Polygon RPCs; bot cycles to next on failure
