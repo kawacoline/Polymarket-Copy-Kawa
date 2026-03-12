@@ -97,23 +97,30 @@ _portfolio_cache = None # cached portfolio stats dict
 _portfolio_ts = 0.0     # last successful portfolio calculation
 
 
-# Bot instance (will be imported)
+# Global instances to prevent memory leaks from constant re-init
 bot_instance = None
 bot_thread = None
+_clob_client = None
+_w3_instances = {} # rpc_url -> w3 instance
 
 
 def get_clob_client():
-    """Get authenticated CLOB client"""
-    client = ClobClient(
+    """Get or create authenticated CLOB client"""
+    global _clob_client
+    
+    if _clob_client is not None:
+        return _clob_client
+        
+    _clob_client = ClobClient(
         CLOB_API,
         key=PRIVATE_KEY,
         chain_id=137,
         signature_type=SIGNATURE_TYPE,
         funder=FUNDER_ADDRESS
     )
-    creds = client.derive_api_key()
-    client.set_api_creds(creds)
-    return client
+    creds = _clob_client.derive_api_key()
+    _clob_client.set_api_creds(creds)
+    return _clob_client
 
 
 def get_positions():
@@ -263,7 +270,12 @@ def _fetch_usdc_balance_with_fallback():
     for attempt in range(total):
         rpc = POLYGON_RPCS[_rpc_index % total]
         try:
-            w3 = Web3(Web3.HTTPProvider(rpc, request_kwargs={'timeout': 5}))
+            from web3 import Web3
+            # Use cached w3 instance if available
+            if rpc not in _w3_instances:
+                _w3_instances[rpc] = Web3(Web3.HTTPProvider(rpc, request_kwargs={'timeout': 5}))
+            
+            w3 = _w3_instances[rpc]
             contract = w3.eth.contract(address=usdc_address, abi=erc20_abi)
             raw = contract.functions.balanceOf(user_address).call()
             balance = raw / 1_000_000

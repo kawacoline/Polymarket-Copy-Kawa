@@ -76,10 +76,21 @@ def log_dynamic(logger, msg, category=None):
     
     _last_category = cat
     
-    # Log to file on first occurrence
+    # Log to file: Always on first occurrence, then periodically for stats/polling
+    # to avoid blank log files while preventing massive bloat.
+    record_to_file = False
     if count == 1:
-        # Avoid double console print by only calling FileHandler
-        # We also want to log multi-line messages fully to file
+        record_to_file = True
+    elif "POLLING" in cat or "MAIN_LOOP" in cat:
+        if count % 100 == 0: # Log every 100th polling/loop message
+            record_to_file = True
+    elif count % 20 == 0: # Log every 20th of other dynamic categories
+        record_to_file = True
+
+    if record_to_file:
         for handler in logger.handlers:
             if isinstance(handler, logging.FileHandler):
-                handler.emit(logger.makeRecord(logger.name, logging.INFO, None, 0, msg, None, None))
+                # Use handle() which includes formatting and flushing
+                log_record = logger.makeRecord(logger.name, logging.INFO, None, 0, f"{msg}{tag}", None, None)
+                handler.handle(log_record)
+                handler.flush()
