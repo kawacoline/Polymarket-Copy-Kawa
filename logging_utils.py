@@ -10,41 +10,45 @@ def setup_logger(name="PolymarketBot", console=True):
     logger = logging.getLogger(name)
     logger.setLevel(logging.INFO)
     
-    if not logger.handlers:
-        os.makedirs('logs', exist_ok=True)
+    # Remove existing handlers to avoid duplicates on re-init
+    for h in logger.handlers[:]:
+        logger.removeHandler(h)
         
-        f_handler = logging.FileHandler('logs/bot.log', encoding='utf-8')
-        e_handler = logging.FileHandler('logs/error.log', encoding='utf-8')
+    os.makedirs('logs', exist_ok=True)
+    
+    f_handler = logging.FileHandler('logs/bot.log', encoding='utf-8')
+    e_handler = logging.FileHandler('logs/error.log', encoding='utf-8')
+    
+    log_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+    f_handler.setFormatter(log_format)
+    e_handler.setFormatter(log_format)
+    
+    f_handler.setLevel(logging.INFO)
+    e_handler.setLevel(logging.ERROR)
+    
+    logger.addHandler(f_handler)
+    logger.addHandler(e_handler)
+    
+    if console:
+        c_handler = logging.StreamHandler(sys.stdout)
+        c_handler.setFormatter(log_format)
+        logger.addHandler(c_handler)
         
-        log_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-        f_handler.setFormatter(log_format)
-        e_handler.setFormatter(log_format)
-        
-        logger.addHandler(f_handler)
-        logger.addHandler(e_handler)
-        
-        if console:
-            c_handler = logging.StreamHandler()
-            c_handler.setFormatter(log_format)
-            logger.addHandler(c_handler)
-            
-        logger.propagate = False
-        
+    logger.propagate = False
     return logger
 
 def log_dynamic(logger, msg, category=None):
     """
     Overwrites the current line in terminal if the category is the same.
-    Only logs to file on the first occurrence to avoid bloat.
+    Only logs to file on the first occurrence.
     """
     global _last_category
-    import sys
     
     # Default category to message content if not provided
     cat = category or msg
     
-    # If we switch categories, move to a new line
-    if _last_category is not None and _last_category != cat:
+    # If we switch categories or if the msg contains newlines, force a newline
+    if _last_category is not None and (_last_category != cat or "\n" in msg):
         sys.stdout.write("\n")
         sys.stdout.flush()
     
@@ -52,15 +56,18 @@ def log_dynamic(logger, msg, category=None):
     count = _log_counters[cat]
     tag = f" [x{count}]" if count > 1 else ""
     
-    # Print to terminal with carriage return
-    sys.stdout.write(f"\r{msg}{tag}" + " " * 12)
+    # Clear line and print with carriage return
+    # \r goes to start, then we write message, then some spaces to clear old trail
+    # \033[K is the "clear until end of line" escape sequence
+    sys.stdout.write(f"\r{msg}{tag}" + " " * 10)
     sys.stdout.flush()
     
     _last_category = cat
     
     # Log to file on first occurrence
     if count == 1:
-        # We manually call handles for file only to avoid double console print
+        # Avoid double console print by only calling FileHandler
+        # We also want to log multi-line messages fully to file
         for handler in logger.handlers:
             if isinstance(handler, logging.FileHandler):
                 handler.emit(logger.makeRecord(logger.name, logging.INFO, None, 0, msg, None, None))

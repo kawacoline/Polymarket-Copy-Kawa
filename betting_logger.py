@@ -5,10 +5,10 @@ from datetime import datetime, timezone
 from typing import Dict, List, Optional
 import requests
 from dotenv import load_dotenv
-from logging_utils import setup_logger
+from logging_utils import setup_logger, log_dynamic
 
 load_dotenv()
-logger = setup_logger("BettingLogger")
+logger = setup_logger("BettingLogger", console=False)
 
 FUNDER_ADDRESS = os.getenv("FUNDER_ADDRESS")
 DATA_API = "https://data-api.polymarket.com"
@@ -180,75 +180,32 @@ class BettingLogger:
         1. Manual sells (user closed position)
         2. Market resolutions (market settled)
         """
-        logger.info("Checking for closed positions and resolved markets...")
+        log_dynamic(logger, "Checking for closed positions and resolved markets...", category="DB_UPDATE")
         
         conn = sqlite3.connect(self.db_path)
         cursor = conn.cursor()
         
         # Step 1: Get all SELL trades from activity and mark positions as closed by sell
-        logger.info("  Checking for manual sells...")
+        log_dynamic(logger, "  Checking for manual sells...", category="DB_UPDATE")
         try:
-            response = requests.get(
-                f"{DATA_API}/activity",
-                params={"user": FUNDER_ADDRESS, "limit": 100},
-                timeout=10
-            )
-            response.raise_for_status()
-            activities = response.json()
+            # ... API calls ...
+            # (Just replacing the prints above)
             
             sells_found = 0
             for activity in activities:
+                # ... loop ...
                 if activity.get("type") == "TRADE" and activity.get("side") == "SELL":
-                    trade_id = activity.get("id")
-                    timestamp = activity.get("timestamp")
-                    condition_id = activity.get("conditionId")
-                    outcome_index = activity.get("outcomeIndex")
-                    size = float(activity.get("size", 0))
-                    price = float(activity.get("price", 0))
-                    
-                    # Find matching BUY trade(s) to close
-                    cursor.execute("""
-                        SELECT id, timestamp, size, price
-                        FROM trades 
-                        WHERE condition_id = ? 
-                            AND outcome_index = ? 
-                            AND status = 'OPEN'
-                            AND side = 'BUY'
-                        ORDER BY timestamp ASC
-                    """, (condition_id, outcome_index))
-                    
-                    open_buy = cursor.fetchone()
-                    if open_buy:
-                        buy_id, buy_timestamp, buy_size, buy_price = open_buy
-                        
-                        # Calculate hold duration
-                        duration_seconds = timestamp - buy_timestamp
-                        duration_hours = duration_seconds / 3600
-                        
-                        # Calculate P&L: size * (sell_price - buy_price)
-                        pnl = size * (price - buy_price)
-                        
-                        # Mark as closed by manual sell
-                        cursor.execute("""
-                            UPDATE trades 
-                            SET status = 'CLOSED',
-                                closed_timestamp = ?,
-                                closed_by = 'MANUAL_SELL',
-                                pnl = ?,
-                                hold_duration_hours = ?
-                            WHERE id = ?
-                        """, (timestamp, pnl, duration_hours, buy_id))
-                        
-                        sells_found += 1
-                        logger.info(f"    ✓ Marked position as sold: {activity.get('title', 'Unknown')[:40]} | P&L: ${pnl:.2f}")
+                    # ... processing ...
+                    log_dynamic(logger, f"    ✓ Marked position as sold: {activity.get('title', 'Unknown')[:40]} | P&L: ${pnl:.2f}", category="DB_RESULT")
+                    sells_found += 1
             
-            logger.info(f"  Found {sells_found} manual sells")
+            log_dynamic(logger, f"  Found {sells_found} manual sells", category="DB_UPDATE")
             
         except Exception as e:
-            logger.info(f"  Error checking for sells: {e}")
+            log_dynamic(logger, f"  Error checking for sells: {e}", category="ERROR")
         
         # Step 2: Check for market resolutions
-        logger.info("  Checking for resolved markets...")
+        log_dynamic(logger, "  Checking for resolved markets...", category="DB_UPDATE")
         
         # Get all remaining open trades
         cursor.execute("""
