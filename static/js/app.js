@@ -14,13 +14,22 @@ function toggleWalletName(address) {
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', function () {
     refreshAll();
-    // Auto-refresh every 0.5 seconds (real-time)
-    setInterval(() => {
-        loadStatus();
-        loadPortfolioStats();
-        loadPositions();
-        loadSimulatedPositions();
-    }, 500);
+    
+    // Auto-refresh every 2 seconds (was 0.5s)
+    // Staggered to prevent request bursts
+    setInterval(async () => {
+        try {
+            await loadStatus();
+            await new Promise(r => setTimeout(r, 200));
+            await loadPortfolioStats();
+            await new Promise(r => setTimeout(r, 200));
+            await loadPositions();
+            await new Promise(r => setTimeout(r, 200));
+            await loadSimulatedPositions();
+        } catch (e) {
+            console.error("Error in refresh loop:", e);
+        }
+    }, 2000);
 });
 
 // ============================================================================
@@ -170,26 +179,32 @@ async function loadPortfolioStats() {
     try {
         const response = await fetch('/api/portfolio');
         const stats = await response.json();
-        if (document.getElementById('accountBalance')) {
-            document.getElementById('accountBalance').textContent = formatCurrency(stats.account_balance || 0);
-        }
+        
+        const updateText = (id, text) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = text;
+        };
 
-        document.getElementById('openPositions').textContent = stats.open_positions;
-        document.getElementById('totalValue').textContent = formatCurrency(stats.total_current_value);
+        const updateCurrency = (id, amount) => {
+            const el = document.getElementById(id);
+            if (el) el.textContent = formatCurrency(amount || 0);
+        };
 
-        const unrealizedEl = document.getElementById('unrealizedPnl');
-        unrealizedEl.textContent = formatCurrency(stats.unrealized_pnl);
-        unrealizedEl.className = 'stat-value ' + (stats.unrealized_pnl >= 0 ? 'positive' : 'negative');
+        const updateStatPnl = (id, amount) => {
+            const el = document.getElementById(id);
+            if (el) {
+                el.textContent = formatCurrency(amount || 0);
+                el.className = 'stat-value ' + (amount >= 0 ? 'positive' : 'negative');
+            }
+        };
 
-        const realizedEl = document.getElementById('realizedPnl');
-        realizedEl.textContent = formatCurrency(stats.realized_pnl);
-        realizedEl.className = 'stat-value ' + (stats.realized_pnl >= 0 ? 'positive' : 'negative');
-
-        const totalPnlEl = document.getElementById('totalPnl');
-        totalPnlEl.textContent = formatCurrency(stats.total_pnl);
-        totalPnlEl.className = 'stat-value ' + (stats.total_pnl >= 0 ? 'positive' : 'negative');
-
-        document.getElementById('totalWithdrawn').textContent = formatCurrency(stats.total_withdrawn);
+        updateCurrency('accountBalance', stats.account_balance);
+        updateText('openPositions', stats.open_positions || 0);
+        updateCurrency('totalValue', stats.total_current_value);
+        updateStatPnl('unrealizedPnl', stats.unrealized_pnl);
+        updateStatPnl('realizedPnl', stats.realized_pnl);
+        updateStatPnl('totalPnl', stats.total_pnl);
+        updateCurrency('totalWithdrawn', stats.total_withdrawn);
 
     } catch (error) {
         console.error('Error loading portfolio stats:', error);

@@ -8,6 +8,7 @@ import os
 import json
 import sqlite3
 import threading
+import time
 from datetime import datetime, timezone
 from flask import Flask, render_template, jsonify, request, send_file
 from dotenv import load_dotenv
@@ -92,6 +93,8 @@ POLYGON_RPCS = [
 _rpc_index = 0          # current RPC in use
 _balance_cache = None   # last successfully fetched balance (float)
 _balance_ts = 0.0       # unix timestamp of last successful fetch
+_portfolio_cache = None # cached portfolio stats dict
+_portfolio_ts = 0.0     # last successful portfolio calculation
 
 
 # Bot instance (will be imported)
@@ -251,6 +254,12 @@ def _fetch_usdc_balance_with_fallback():
 
     # Try every RPC starting from the current index
     total = len(POLYGON_RPCS)
+    
+    # 15 second cache check for balance (to save RPC calls)
+    now = time.time()
+    if _balance_cache is not None and (now - _balance_ts < 15):
+        return _balance_cache
+
     for attempt in range(total):
         rpc = POLYGON_RPCS[_rpc_index % total]
         try:
@@ -269,10 +278,15 @@ def _fetch_usdc_balance_with_fallback():
 
 def get_portfolio_stats():
     """Calculate overall portfolio statistics and fetch USDC balance"""
-    global _balance_cache, _balance_ts
-    import time
+    global _balance_cache, _balance_ts, _portfolio_cache, _portfolio_ts
 
     try:
+        now = time.time()
+        
+        # 5 second cache for the full stats grid
+        if _portfolio_cache and (now - _portfolio_ts < 5):
+            return _portfolio_cache
+
         balance = 0
 
         # Method 1: Try using authenticated CLOB client (kept for compatibility)
@@ -343,7 +357,7 @@ def get_portfolio_stats():
         withdrawals = load_withdrawals()
         total_withdrawn = sum(w.get("amount", 0) for w in withdrawals)
         
-        return {
+        result = {
             "account_balance": round(balance, 2), 
             "open_positions": len(positions),
             "total_cost_basis": round(total_cost, 2),
@@ -353,7 +367,13 @@ def get_portfolio_stats():
             "total_pnl": round(total_pnl + closed_pnl, 2),
             "total_withdrawn": round(total_withdrawn, 2),
             "closed_positions": closed_count
-        }    
+        }
+        
+        # Update cache
+        _portfolio_cache = result
+        _portfolio_ts = now
+        
+        return result
     except Exception as e:
         print(f"Error calculating portfolio stats: {e}")
         return {
