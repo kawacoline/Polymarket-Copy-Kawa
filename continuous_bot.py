@@ -3,6 +3,7 @@ import time
 import json
 import requests
 import logging
+import threading
 from datetime import datetime, timezone
 from dotenv import load_dotenv
 from py_clob_client.client import ClobClient
@@ -50,6 +51,8 @@ class CopyTradingBot:
         # Global stats
         self.stats = {
             "total_copied": 0,
+            "live_copies": 0,
+            "dry_run_copies": 0,
             "successful_copies": 0,
             "failed_copies": 0,
             "last_trade_copied": None,
@@ -526,6 +529,7 @@ class CopyTradingBot:
                 
                 # Update stats for dry run
                 self.stats["total_copied"] += 1
+                self.stats["dry_run_copies"] += 1
                 self.stats["successful_copies"] += 1
                 
                 if address in self.stats["accounts"]:
@@ -542,6 +546,7 @@ class CopyTradingBot:
                     
                     # Update stats
                     self.stats["total_copied"] += 1
+                    self.stats["live_copies"] += 1
                     self.stats["successful_copies"] += 1
                     
                     if address in self.stats["accounts"]:
@@ -654,12 +659,15 @@ class CopyTradingBot:
             print("Error: Missing PRIVATE_KEY for live trading")
             return
         
-        # Load accounts fresh at start
-        self.target_accounts = self.load_target_accounts()
-        
         if not self.target_accounts:
             print("Error: No target accounts configured in accounts.json")
             return
+        
+        # Start periodic stats refresh thread
+        import threading
+        refresh_thread = threading.Thread(target=self._stats_refresh_loop)
+        refresh_thread.daemon = True
+        refresh_thread.start()
         
         self.running = True
         
@@ -757,6 +765,76 @@ class CopyTradingBot:
         
         except Exception as e:
             return {"success": False, "message": f"Panic sell failed: {str(e)}"}
+
+    def _stats_refresh_loop(self):
+        """Background thread to refresh all account stats every 24 hours"""
+        import subprocess
+        import os
+        import json
+        
+        # Initial delay to let the bot stabilize
+        time.sleep(60)
+        
+        while self.running:
+            try:
+                logger.info("🕒 Starting periodic account stats refresh...")
+                accounts = self.load_target_accounts()
+                
+                scrapper_dir = os.path.join(os.getcwd(), "polymarket-profitablewallets-scrapper")
+                script_path = os.path.join(scrapper_dir, "src", "analyze_single.js")
+                
+                for acc in accounts:
+                    if not self.running: break
+                    if not acc.get('enabled', True): continue
+                    
+                    addr = acc.get('address')
+                    if not addr: continue
+                    
+                    logger.info(f"  Enriching stats for {addr}...")
+                    try:
+                        result = subprocess.run(
+                            ["node", script_path, addr],
+                            capture_output=True,
+                            text=True,
+                            cwd=scrapper_dir,
+                            timeout=60
+                        )
+                        
+                        if result.returncode == 0:
+                            data = json.loads(result.stdout)
+                            acc['pnl'] = data.get('pnl', acc.get('pnl', 0))
+                            acc['winRate'] = data.get('winRate', acc.get('winRate', 0))
+                            acc['rank'] = data.get('rank', acc.get('rank', 9999))
+                            acc['tags'] = list(set(acc.get('tags', []) + data.get('tags', [])))
+                            
+                            acc['enrichment'] = {
+                                "totalTrades": data.get('totalTrades', 0),
+                                "activePositions": data.get('activePositions', 0),
+                                "avgTradeSize": data.get('avgTradeSize', 0),
+                                "tradesPerDay": data.get('tradesPerDay', 0),
+                                "lastTradeAt": data.get('lastTradeAt'),
+                                "lastUpdate": datetime.now(timezone.utc).isoformat()
+                            }
+                    except Exception:
+                        pass # Silently continue
+                    
+                    time.sleep(10)
+                
+                # Save updated stats
+                with open(ACCOUNTS_FILE, 'w') as f:
+                    json.dump({"accounts": accounts}, f, indent=2)
+                
+                self.target_accounts = accounts
+                self.sync_account_stats()
+                logger.info("✅ Periodic refresh complete.")
+                
+            except Exception as e:
+                logger.error(f"Error in stats refresh loop: {e}")
+            
+            # Wait 24 hours
+            for _ in range(1440):
+                if not self.running: break
+                time.sleep(60)
 
 
 def main():

@@ -11,7 +11,7 @@ const { fetchPositions, fetchActivity, sleep } = require('./api');
  */
 function calculateProfitWinRate(activity) {
     const trades = activity.filter(a => a.type === 'TRADE');
-    if (trades.length === 0) return 0;
+    if (trades.length === 0) return { winRate: 0, totalClosed: 0 };
 
     // Group by market+outcome to find buy/sell pairs
     const marketGroups = {};
@@ -48,7 +48,8 @@ function calculateProfitWinRate(activity) {
     wins += redeems.length;
     totalClosed += redeems.length;
 
-    return totalClosed > 0 ? wins / totalClosed : 0;
+    const winRate = totalClosed > 0 ? wins / totalClosed : 0;
+    return { winRate, totalClosed };
 }
 
 /**
@@ -92,7 +93,7 @@ async function analyzeWallet(wallet) {
     const totalSells = sells.length;
 
     // Win rate approximation
-    const winRate = calculateProfitWinRate(activity);
+    const { winRate, totalClosed } = calculateProfitWinRate(activity);
 
     // Detect high-performance active traders (Low redemptions but high trade activity)
     const isActiveWhale = (wallet.pnl > 5000 && totalTrades > 20);
@@ -165,7 +166,7 @@ async function analyzeWallet(wallet) {
         unrealizedPnl: Math.round(unrealizedPnl * 100) / 100,
         totalTrades,
         totalRedeems,
-        totalClosedPositions,
+        totalClosedPositions: totalClosed,
         winRate: Math.round(winRate * 10000) / 10000,
         avgTradeSize: Math.round(avgTradeSize * 100) / 100,
         tradesPerDay: Math.round(tradesPerDay * 100) / 100,

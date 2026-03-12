@@ -454,11 +454,15 @@ def get_status():
             pass
             
         events_session = status.get("stats", {}).get("total_copied", 0)
+        live_events = status.get("stats", {}).get("live_copies", 0)
+        dry_events = status.get("stats", {}).get("dry_run_copies", 0)
         
         status["wallets_found"] = wallets_found
         status["db_records"] = db_records
         status["last_trade_time"] = last_trade_time
         status["events_session"] = events_session
+        status["live_events_session"] = live_events
+        status["dry_events_session"] = dry_events
         
         # Override running status based on actual thread state if running within the GUI
         status["header_stats"] = {
@@ -785,6 +789,96 @@ def api_get_accounts():
         return jsonify({"error": str(e)}), 500
 
 
+def analyze_wallet_external(address):
+    """
+    Call the Node.js scraper analyzer for a single wallet.
+    Returns a dict with processed stats and tags.
+    """
+    import subprocess
+    import json
+    
+    scrapper_dir = os.path.join(os.getcwd(), "polymarket-profitablewallets-scrapper")
+    script_path = os.path.join(scrapper_dir, "src", "analyze_single.js")
+    
+    try:
+        # Run node script
+        result = subprocess.run(
+            ["node", script_path, address],
+            capture_output=True,
+            text=True,
+            cwd=scrapper_dir,
+            timeout=30
+        )
+        
+        if result.returncode != 0:
+            logger.error(f"Analysis script failed for {address}: {result.stderr}")
+            return None, result.stderr
+            
+        data = json.loads(result.stdout)
+        return data, None
+        
+    except Exception as e:
+        logger.exception(f"Exception during external analysis of {address}: {e}")
+        return None, str(e)
+
+
+@app.route('/api/accounts/analyze/<address>', methods=['POST'])
+def api_analyze_account(address):
+    """Enrich an existing account with fresh stats and tags"""
+    try:
+        address = address.strip().lower()
+        logger.info(f"Triggering deep analysis for {address}...")
+        
+        data, error = analyze_wallet_external(address)
+        if error:
+            return jsonify({"error": f"Analysis failed: {error}"}), 500
+            
+        # Update accounts.json
+        accounts = load_accounts()
+        updated = False
+        
+        for acc in accounts:
+            if acc.get('address', '').lower() == address:
+                # Merge stats
+                acc['pnl'] = data.get('pnl', acc.get('pnl', 0))
+                acc['winRate'] = data.get('winRate', acc.get('winRate', 0))
+                acc['rank'] = data.get('rank', acc.get('rank', 9999))
+                
+                # Merge tags (unique)
+                new_tags = data.get('tags', [])
+                existing_tags = acc.get('tags', [])
+                acc['tags'] = list(set(existing_tags + new_tags))
+                
+                # Full stats enrichment
+                acc['enrichment'] = {
+                    "totalTrades": data.get('totalTrades', 0),
+                    "activePositions": data.get('activePositions', 0),
+                    "avgTradeSize": data.get('avgTradeSize', 0),
+                    "tradesPerDay": data.get('tradesPerDay', 0),
+                    "lastTradeAt": data.get('lastTradeAt'),
+                    "lastUpdate": datetime.now(timezone.utc).isoformat()
+                }
+                updated = True
+                break
+        
+        if updated:
+            with open(ACCOUNTS_FILE, 'w') as f:
+                json.dump({"accounts": accounts}, f, indent=2)
+            
+            # If bot is running, force it to reload accounts
+            global bot_instance
+            if bot_instance:
+                bot_instance.sync_account_stats()
+                
+            return jsonify({"success": True, "data": data})
+        else:
+            return jsonify({"error": "Account not found in tracking list"}), 404
+            
+    except Exception as e:
+        logger.exception(f"Error in api_analyze_account: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @app.route('/api/accounts', methods=['POST'])
 def api_add_account():
     """Add a new target account"""
@@ -795,43 +889,70 @@ def api_add_account():
         address = data.get('address', '').strip()
         name = data.get('name', '').strip()
         bet_amount = data.get('bet_amount')
+        auto_analyze = data.get('auto_analyze', False)
         
         if not address:
             return jsonify({"error": "Address is required"}), 400
         
-        # Validate address format (basic check)
-        if not address.startswith('0x') or len(address) != 42:
-            return jsonify({"error": "Invalid Ethereum address format"}), 400
+        address = address.lower()
         
+        # 1. Basic properties
+        new_account = {
+            "address": address,
+            "name": name or address[:10] + "...",
+            "rank": 9999,
+            "score": 0,
+            "winRate": 0,
+            "pnl": 0,
+            "tags": ["MANUAL"],
+            "enabled": True,
+            "bet_amount_override": bet_amount,
+            "added_date": datetime.now(timezone.utc).isoformat()
+        }
+        
+        # 2. Optional deep analysis
+        if auto_analyze:
+            logger.info(f"Auto-enriching new wallet {address}...")
+            enriched_data, error = analyze_wallet_external(address)
+            if enriched_data:
+                new_account['pnl'] = enriched_data.get('pnl', 0)
+                new_account['winRate'] = enriched_data.get('winRate', 0)
+                new_account['rank'] = enriched_data.get('rank', 9999)
+                new_account['tags'] = list(set(new_account['tags'] + enriched_data.get('tags', [])))
+                new_account['enrichment'] = {
+                    "totalTrades": enriched_data.get('totalTrades', 0),
+                    "activePositions": enriched_data.get('activePositions', 0),
+                    "avgTradeSize": enriched_data.get('avgTradeSize', 0),
+                    "tradesPerDay": enriched_data.get('tradesPerDay', 0),
+                    "lastTradeAt": enriched_data.get('lastTradeAt'),
+                    "lastUpdate": datetime.now(timezone.utc).isoformat()
+                }
+
         if bot_instance:
-            success, message = bot_instance.add_target_account(address, name, bet_amount)
-            if not success:
-                return jsonify({"error": message}), 400
+            # We bypass the bot's simplified add_target_account and do it manually here 
+            # to support the new enrichment data structure.
+            accounts = load_accounts()
+            if any(acc.get('address', '').lower() == address for acc in accounts):
+                return jsonify({"error": "Account already exists"}), 400
+            
+            accounts.append(new_account)
+            with open(ACCOUNTS_FILE, 'w') as f:
+                json.dump({"accounts": accounts}, f, indent=2)
+            
+            bot_instance.sync_account_stats()
         else:
             # Bot not running, manually add to file
             accounts = load_accounts()
             
-            # Check if already exists
-            if any(acc.get('address') == address for acc in accounts):
+            if any(acc.get('address', '').lower() == address for acc in accounts):
                 return jsonify({"error": "Account already exists"}), 400
             
-            accounts.append({
-                "address": address,
-                "name": name or address[:10] + "...",
-                "rank": 9999,
-                "score": 0,
-                "winRate": 0,
-                "pnl": 0,
-                "tags": ["MANUAL"],
-                "enabled": True,
-                "bet_amount_override": bet_amount,
-                "added_date": datetime.now(timezone.utc).isoformat()
-            })
+            accounts.append(new_account)
             
             with open(ACCOUNTS_FILE, 'w') as f:
                 json.dump({"accounts": accounts}, f, indent=2)
         
-        return jsonify({"success": True, "message": "Account added successfully"})
+        return jsonify({"success": True, "message": "Account added successfully", "account": new_account})
     
     except Exception as e:
         return jsonify({"error": str(e)}), 500

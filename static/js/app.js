@@ -143,9 +143,13 @@ async function loadStatus() {
             dbStat.textContent = (data.db_records || 0).toLocaleString();
         }
 
-        const eventsStat = document.getElementById('header-stat-events');
-        if (eventsStat) {
-            eventsStat.textContent = (data.events_session || 0).toLocaleString();
+        const liveEventsStat = document.getElementById('header-stat-events-live');
+        const dryEventsStat = document.getElementById('header-stat-events-dry');
+        if (liveEventsStat) {
+            liveEventsStat.textContent = (data.live_events_session || 0).toLocaleString();
+        }
+        if (dryEventsStat) {
+            dryEventsStat.textContent = (data.dry_events_session || 0).toLocaleString();
         }
 
         const lastTradeStat = document.getElementById('header-stat-last-trade');
@@ -563,11 +567,26 @@ function renderAccounts() {
                                 onchange="toggleAccount('${account.address}', this.checked)">
                             <span class="slider"></span>
                         </label>
+                        <button class="inline-flex items-center justify-center rounded-md h-8 w-8 transition-colors text-blue-400 hover:bg-blue-500/10 shadow-sm border border-blue-500/20" onclick="analyzeAccount('${account.address}')" title="Re-analyze & Enrich Statistics">
+                            🪄
+                        </button>
                         <button class="inline-flex items-center justify-center rounded-md h-8 w-8 transition-colors text-muted-foreground hover:bg-destructive hover:text-destructive-foreground shadow-sm" onclick="removeAccount('${account.address}')" title="Remove Target">
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/><line x1="10" x2="10" y1="11" y2="17"/><line x1="14" x2="14" y1="11" y2="17"/></svg>
                         </button>
                     </div>
                 </div>
+                ${account.enrichment ? `
+                <div class="grid grid-cols-2 gap-2 mb-3 bg-black/30 p-2 rounded-lg border border-white/5">
+                    <div class="text-[10px] text-muted-foreground">
+                        <div class="uppercase opacity-70">Total Trades</div>
+                        <div class="text-white font-medium">${account.enrichment.totalTrades || 0}</div>
+                    </div>
+                    <div class="text-[10px] text-muted-foreground">
+                        <div class="uppercase opacity-70">Avg Size</div>
+                        <div class="text-white font-medium">${formatCurrency(account.enrichment.avgTradeSize || 0)}</div>
+                    </div>
+                </div>
+                ` : ''}
                 <div class="flex flex-wrap gap-x-4 gap-y-3 mt-auto pt-2 text-xs">
                     <div class="flex flex-col gap-1 min-w-[80px]">
                         <div class="font-medium text-muted-foreground uppercase tracking-wider">Copied</div>
@@ -577,6 +596,12 @@ function renderAccounts() {
                         <div class="font-medium text-muted-foreground uppercase tracking-wider">Last Check</div>
                         <div class="font-mono text-[11px]">${stats.last_check ? formatTimestamp(stats.last_check) : 'Never'}</div>
                     </div>
+                    ${account.enrichment ? `
+                        <div class="flex flex-col gap-1 min-w-[100px]">
+                            <div class="font-medium text-muted-foreground uppercase tracking-wider">Activity</div>
+                            <div class="font-mono text-[11px] text-blue-400">${account.enrichment.tradesPerDay?.toFixed(1) || '0'} tr/day</div>
+                        </div>
+                    ` : ''}
                     ${account.bet_amount_override ? `
                         <div class="flex flex-col gap-1 min-w-[100px]">
                             <div class="font-medium text-muted-foreground uppercase tracking-wider">Bet Override</div>
@@ -669,12 +694,18 @@ async function addAccount() {
     const name = document.getElementById('accountName').value.trim();
     const betAmount = document.getElementById('accountBetAmount').value;
 
+    const autoAnalyze = document.getElementById('autoAnalyze')?.checked || false;
+
     if (!address) {
         showNotification('Please enter a wallet address', 'error');
         return;
     }
 
     try {
+        if (autoAnalyze) {
+            showNotification('Adding and analyzing wallet... this may take a minute.', 'info');
+        }
+
         const response = await fetch('/api/accounts', {
             method: 'POST',
             headers: {
@@ -683,7 +714,8 @@ async function addAccount() {
             body: JSON.stringify({
                 address: address,
                 name: name || null,
-                bet_amount: betAmount ? parseFloat(betAmount) : null
+                bet_amount: betAmount ? parseFloat(betAmount) : null,
+                auto_analyze: autoAnalyze
             })
         });
 
@@ -747,6 +779,42 @@ async function toggleAccount(address, enabled) {
         }
     } catch (error) {
         showNotification('Error toggling account: ' + error.message, 'error');
+    }
+}
+
+async function analyzeAccount(address) {
+    showNotification(`Deep analysis started for ${address.substring(0, 8)}...`, 'info');
+    
+    // Add temporary loading state to the button if it exists
+    const btn = document.querySelector(`button[onclick="analyzeAccount('${address}')"]`);
+    if (btn) {
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-tiny"></span>';
+    }
+
+    try {
+        const response = await fetch(`/api/accounts/analyze/${encodeURIComponent(address)}`, {
+            method: 'POST'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            showNotification('Analysis complete! Data enriched.', 'success');
+            loadAccounts();
+        } else {
+            showNotification(data.error || 'Analysis failed', 'error');
+            if (btn) {
+                btn.disabled = false;
+                btn.innerHTML = '🪄';
+            }
+        }
+    } catch (error) {
+        showNotification('Error during analysis: ' + error.message, 'error');
+        if (btn) {
+            btn.disabled = false;
+            btn.innerHTML = '🪄';
+        }
     }
 }
 
