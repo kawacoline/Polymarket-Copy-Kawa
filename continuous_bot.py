@@ -45,6 +45,7 @@ class CopyTradingBot:
         self.last_check = None
         self.target_accounts = self.load_target_accounts()
         self.trades_this_session = 0  # Session management
+        self.session_limit_alerted = False # Flag to log session limit only once
         
         # Global stats
         self.stats = {
@@ -231,15 +232,33 @@ class CopyTradingBot:
         except Exception as e:
             logger.exception(f"Error updating status: {e}")
     
+    def api_request(self, method, url, **kwargs):
+        """Robust API request wrapper that handles SSL/Network errors dynamically"""
+        max_retries = 3
+        for i in range(max_retries):
+            try:
+                response = requests.request(method, url, **kwargs)
+                response.raise_for_status()
+                # If success, clear any previous API error logic
+                return response
+            except (requests.exceptions.SSLError, requests.exceptions.ConnectionError, requests.exceptions.Timeout) as e:
+                if i < max_retries - 1:
+                    bot_log(f"⚠️ API Connection issue ({i+1}/{max_retries}): {str(e)[:100]}...", category="API_ERROR")
+                    time.sleep(2 * (i + 1))
+                else:
+                    raise e
+            except Exception as e:
+                raise e
+
     def get_profile_name(self, wallet_address: str) -> str:
         """Fetch profile name from Polymarket"""
         try:
-            response = requests.get(
+            response = self.api_request(
+                "GET",
                 f"{PROFILE_API}/public-profile",
                 params={"address": wallet_address},
                 timeout=10
             )
-            response.raise_for_status()
             profile = response.json()
             return profile.get("name") or profile.get("pseudonym") or wallet_address[:10] + "..."
         except:
@@ -247,24 +266,32 @@ class CopyTradingBot:
     
     def get_positions(self, wallet_address: str) -> list:
         """Fetch positions for a wallet"""
-        response = requests.get(
-            f"{DATA_API}/positions",
-            params={"user": wallet_address, "sizeThreshold": 0},
-            timeout=10
-        )
-        response.raise_for_status()
-        return response.json()
-    
+        try:
+            response = self.api_request(
+                "GET",
+                f"{DATA_API}/positions",
+                params={"user": wallet_address, "sizeThreshold": 0},
+                timeout=10
+            )
+            return response.json()
+        except Exception as e:
+            bot_log(f"Error fetching positions for {wallet_address}: {e}", category="API_ERROR")
+            return []
+
     def get_latest_bet(self, wallet_address: str) -> dict | None:
         """Get the latest BUY trade for a wallet"""
-        response = requests.get(
-            f"{DATA_API}/activity",
-            params={"user": wallet_address, "limit": 50},
-            timeout=10
-        )
-        response.raise_for_status()
-        
-        activities = response.json()
+        try:
+            response = self.api_request(
+                "GET",
+                f"{DATA_API}/activity",
+                params={"user": wallet_address, "limit": 50},
+                timeout=10
+            )
+            
+            activities = response.json()
+        except Exception as e:
+            bot_log(f"Error fetching latest bet for {wallet_address}: {e}", category="API_ERROR")
+            return None
         
         # Filter for BUY trades only
         buy_trades = [
@@ -583,7 +610,7 @@ class CopyTradingBot:
             
         except Exception as e:
             error_msg = f"Error checking {name}: {str(e)}"
-            print(error_msg)
+            bot_log(error_msg, category="ERROR")
     
     def check_and_copy(self):
         """Check all target accounts for new trades"""
@@ -599,6 +626,20 @@ class CopyTradingBot:
             if not self.target_accounts:
                 self.update_status("No target accounts configured")
                 return
+
+            # SESSION LIMIT EARLY EXIT
+            if not self.dry_run and self.trades_this_session >= MAX_TRADES_PER_SESSION:
+                if not self.session_limit_alerted:
+                    bot_log(f"⚠️ SESSION LIMIT REACHED ({MAX_TRADES_PER_SESSION}/{MAX_TRADES_PER_SESSION}). Bot is now idling.", category="SESSION_LIMIT")
+                    self.update_status(f"Session limit reached ({MAX_TRADES_PER_SESSION}). Bot idling.")
+                    self.session_limit_alerted = True
+                else:
+                    bot_log(f"Idling - Session limit reached ({MAX_TRADES_PER_SESSION}).", category="SESSION_LIMIT")
+                return
+            
+            # Reset alert flag if we are under the limit (e.g. if MAX_TRADES_PER_SESSION was increased via .env or GUI)
+            if self.trades_this_session < MAX_TRADES_PER_SESSION:
+                self.session_limit_alerted = False
             
             enabled_accounts = [acc for acc in self.target_accounts if acc.get("enabled", True)]
             
@@ -621,21 +662,21 @@ class CopyTradingBot:
             
         except Exception as e:
             error_msg = f"Error in check cycle: {str(e)}"
-            print(error_msg)
+            bot_log(error_msg, category="ERROR")
             self.update_status(error_msg)
     
     def start(self, check_interval: float = 0.01):
         """Start the continuous monitoring bot"""
         if self.running:
-            logger.info("Bot is already running.")
+            bot_log("Bot is already running.", category="INFO")
             return
 
         if not FUNDER_ADDRESS:
-            print("Error: Missing FUNDER_ADDRESS in .env")
+            bot_log("Error: Missing FUNDER_ADDRESS in .env", category="ERROR")
             return
         
         if not PRIVATE_KEY and not self.dry_run:
-            print("Error: Missing PRIVATE_KEY for live trading")
+            bot_log("Error: Missing PRIVATE_KEY for live trading", category="ERROR")
             return
         
         if not self.target_accounts:
