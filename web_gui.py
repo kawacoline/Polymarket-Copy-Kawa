@@ -45,11 +45,25 @@ class DynamicAccessHandler(logging.Handler):
     def emit(self, record):
         try:
             msg = self.format(record)
-            # Group all /api/ requests into a single dynamic line
-            if "/api/" in msg:
-                log_dynamic(logger, msg, category="HTTP_POLLING")
+            
+            # Trim the message: Extract "GET /path HTTP/1.1" 200
+            # Example: 127.0.0.1 - - [12/Mar/2026 15:15:49] "GET /api/portfolio HTTP/1.1" 200 -
+            import re
+            match = re.search(r'"(.*?)"\s+(\d+)', msg)
+            if match:
+                request_line = match.group(1) # e.g. "GET /api/portfolio HTTP/1.1"
+                status_code = match.group(2)  # e.g. "200"
+                # Strip HTTP version to save more space
+                request_line = request_line.replace(" HTTP/1.1", "").replace(" HTTP/1.0", "")
+                display_msg = f"{request_line} {status_code}"
             else:
-                log_dynamic(logger, msg, category="HTTP_ACCESS")
+                display_msg = msg
+                
+            # Group all /api/ requests into a single dynamic line
+            if "/api/" in display_msg:
+                log_dynamic(logger, display_msg, category="HTTP_POLLING")
+            else:
+                log_dynamic(logger, display_msg, category="HTTP_ACCESS")
         except Exception:
             self.handleError(record)
 

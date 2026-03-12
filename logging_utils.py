@@ -56,10 +56,22 @@ def log_dynamic(logger, msg, category=None):
     count = _log_counters[cat]
     tag = f" [x{count}]" if count > 1 else ""
     
+    # Get terminal width for robust clearing
+    try:
+        terminal_width = os.get_terminal_size().columns
+    except Exception:
+        terminal_width = 80
+        
+    full_msg = f"{msg}{tag}"
+    # Ensure message + tag doesn't exceed terminal width to prevent wrapping
+    if len(full_msg) >= terminal_width:
+        full_msg = full_msg[:terminal_width-4] + "..."
+        
     # Clear line and print with carriage return
     # \r goes to start, then we write message, then some spaces to clear old trail
     # \033[K is the "clear until end of line" escape sequence
-    sys.stdout.write(f"\r{msg}{tag}" + " " * 10)
+    sys.stdout.write(f"\r{full_msg}")
+    sys.stdout.write(" " * (terminal_width - len(full_msg) - 1))
     sys.stdout.flush()
     
     _last_category = cat
