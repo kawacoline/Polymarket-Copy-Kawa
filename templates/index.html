@@ -8153,6 +8153,19 @@
         const originalRenderAccounts = window.renderAccounts;
         // Note: The logic inside app.js might need to be monitored if it creates hardcoded HTML
     </script>
+    <style>
+        @keyframes highlight-pulse {
+            0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.5); border-color: rgba(59, 130, 246, 0.5); }
+            50% { box-shadow: 0 0 0 15px rgba(59, 130, 246, 0); border-color: rgba(59, 130, 246, 1); }
+            100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); border-color: rgba(255, 255, 255, 0.1); }
+        }
+        .highlight-pulse {
+            animation: highlight-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+            border-color: #3b82f6 !important;
+            z-index: 50;
+            position: relative;
+        }
+    </style>
 </body>
 
 </html>

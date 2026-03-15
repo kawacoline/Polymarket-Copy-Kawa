@@ -250,7 +250,13 @@ async function loadPositions() {
                             copiedLinks = wallets.map(w => {
                                 const trimW = w.trim();
                                 const short = trimW.substring(0, 6) + '...' + trimW.substring(trimW.length - 4);
-                                return `<a href="https://polymarket.com/profile/${trimW}" target="_blank" class="text-blue-400 hover:text-blue-300 underline text-xs">${short}</a>`;
+                                return `
+                                <div class="inline-flex items-center gap-1 group/copied">
+                                    <a href="https://polymarket.com/profile/${trimW}" target="_blank" class="text-blue-400 hover:text-blue-300 underline text-xs">${short}</a>
+                                    <button onclick="jumpToWallet('${trimW}')" class="p-1 hover:bg-white/10 rounded-md text-muted-foreground hover:text-white transition-colors" title="Jump to Wallet in Dashboard">
+                                        <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                    </button>
+                                </div>`;
                             }).join(', ');
                         }
                         
@@ -353,7 +359,13 @@ async function loadSimulatedPositions() {
                             copiedLinks = wallets.map(w => {
                                 const trimW = w.trim();
                                 const short = trimW.substring(0, 6) + '...' + trimW.substring(trimW.length - 4);
-                                 return `<a href="https://polymarket.com/profile/${trimW}" target="_blank" class="text-blue-400 hover:text-blue-300 underline text-xs">${short}</a>`;
+                                 return `
+                                 <div class="inline-flex items-center gap-1 group/copied">
+                                     <a href="https://polymarket.com/profile/${trimW}" target="_blank" class="text-blue-400 hover:text-blue-300 underline text-xs">${short}</a>
+                                     <button onclick="jumpToWallet('${trimW}')" class="p-1 hover:bg-white/10 rounded-md text-muted-foreground hover:text-white transition-colors" title="Jump to Wallet in Dashboard">
+                                         <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+                                     </button>
+                                 </div>`;
                             }).join(', ');
                         }
                         
@@ -634,6 +646,54 @@ function renderAccounts() {
         `;
     }).join('');
 
+}
+
+/**
+ * Navigation utility to jump from a position back to the source whale/wallet
+ */
+function jumpToWallet(address) {
+    // 1. Reset filters to 'all' so the wallet is guaranteed to be visible
+    setWalletFilter('all');
+    
+    // 2. Clear search if any
+    const searchInput = document.getElementById('walletSearchInput');
+    if (searchInput) {
+        searchInput.value = '';
+    }
+    
+    // 3. Re-render accounts to reflect the 'all' filter
+    renderAccounts();
+
+    // 4. Scroll to the whales section header
+    const section = document.getElementById('whales-section');
+    if (section) {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+
+    // 5. Find the wallet card and highlight it
+    // Wait a bit for scroll to start/finish
+    setTimeout(() => {
+        const cards = document.querySelectorAll('#accountsList > div');
+        let targetCard = null;
+        
+        cards.forEach(card => {
+            if (card.innerHTML.includes(address)) {
+                targetCard = card;
+            }
+        });
+
+        if (targetCard) {
+            targetCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+            
+            // Add a temporary highlight animation
+            targetCard.classList.add('highlight-pulse');
+            setTimeout(() => {
+                targetCard.classList.remove('highlight-pulse');
+            }, 3000);
+        } else {
+            showNotification('Wallet not found in active targets list', 'warning');
+        }
+    }, 300);
 }
 
 async function loadWithdrawals() {
