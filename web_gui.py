@@ -124,61 +124,72 @@ def get_clob_client():
 
 
 def get_positions():
-    """Calculate current positions locally from betting_history.db"""
+    """Fetch real-time positions from API and cross-reference with DB for metadata"""
     try:
         import sqlite3
+        # 1. Fetch live positions from Data API
+        url = f"{DATA_API}/positions"
+        params = {"user": FUNDER_ADDRESS, "sizeThreshold": 0.01}
+        response = requests.get(url, params=params, timeout=10)
+        response.raise_for_status()
+        live_positions = response.json()
+        
+        if not live_positions:
+            return []
+            
+        # 2. Open DB to get metadata (copied_from)
         conn = sqlite3.connect(DB_PATH)
         conn.row_factory = sqlite3.Row
         cursor = conn.cursor()
         
-        # Group trades by token to find net position
-        cursor.execute("""
-            SELECT 
-                market_title as title,
-                outcome,
-                token_id as asset,
-                SUM(CASE WHEN side = 'BUY' THEN size ELSE -size END) as net_size,
-                SUM(CASE WHEN side = 'BUY' THEN size * price ELSE 0 END) as total_spent,
-                SUM(CASE WHEN side = 'BUY' THEN size ELSE 0 END) as total_bought,
-                GROUP_CONCAT(DISTINCT copied_from) as copied_from
-            FROM trades
-            GROUP BY token_id, market_title, outcome
-            HAVING net_size > 0.01
-        """)
-        
-        rows = cursor.fetchall()
-        conn.close()
-        
         enhanced = []
-        for row in rows:
-            size = float(row['net_size'])
-            # Calculate average entry price
-            total_bought = float(row['total_bought'])
-            entry_price = float(row['total_spent']) / total_bought if total_bought > 0 else 0
+        for pos in live_positions:
+            condition_id = pos.get('conditionId')
+            outcome_index = pos.get('outcomeIndex')
             
-            # Since we can't fetch live price easily without SDK, mock currentPrice as entry 
-            # (or use 0% unrealized PNL temporarily)
-            current_price = entry_price
+            # Try to find who we copied this from in our history
+            cursor.execute("""
+                SELECT copied_from, price as entry_price
+                FROM trades 
+                WHERE condition_id = ? AND outcome_index = ?
+                ORDER BY timestamp DESC LIMIT 1
+            """, (condition_id, outcome_index))
+            
+            meta = cursor.fetchone()
+            copied_from = meta['copied_from'] if meta else "Manual/Unknown"
+            
+            # Polymarket API terms:
+            # - size: net shares
+            # - price: current market price
+            # - avgPrice: entry price
+            # - pnl: total pnl
+            
+            size = float(pos.get('size', 0))
+            current_price = float(pos.get('price', 0))
+            entry_price = float(pos.get('avgPrice', 0))
             
             enhanced.append({
-                "title": row['title'],
-                "outcome": row['outcome'],
-                "asset": row['asset'],
+                "title": pos.get('market', "Unknown Market"),
+                "outcome": pos.get('outcome', ""),
+                "asset": pos.get('asset', ""),
                 "size": round(size, 2),
                 "price": round(entry_price, 4),
                 "currentPrice": round(current_price, 4),
-                "pnl": 0.0,
-                "pnl_percent": 0.0,
+                "pnl": round(float(pos.get('pnl', 0)), 2),
+                "pnl_percent": round((current_price - entry_price) / entry_price * 100, 2) if entry_price > 0 else 0,
                 "current_value": round(size * current_price, 2),
                 "cost_basis": round(size * entry_price, 2),
-                "copied_from": row["copied_from"]
+                "copied_from": copied_from,
+                "conditionId": condition_id
             })
             
+        conn.close()
         return enhanced
         
     except Exception as e:
-        logger.error(f"Error calculating positions from DB: {e}")
+        logger.error(f"Error fetching live positions: {e}")
         return []
+
 
 def get_simulated_positions():
     try:
