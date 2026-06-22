@@ -84,7 +84,7 @@ def main():
         
         log("Starting scraper...")
         scraper_dir = os.path.join(REPO_DIR, "polymarket-profitablewallets-scrapper")
-        scraper_process = subprocess.Popen(["node", "src/index.js", "watch"], cwd=scraper_dir)
+        scraper_process = subprocess.Popen(["node", "src/index.js", "continuous"], cwd=scraper_dir)
         
     def stop_bot():
         nonlocal bot_process, scraper_process

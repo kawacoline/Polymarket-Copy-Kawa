@@ -4,7 +4,7 @@ echo   Polymarket Profitable Wallets Scraper - Launcher
 echo ============================================================================
 echo.
 
-node src/index.js watch
+node src/index.js continuous
 if %errorlevel% neq 0 (
     echo.
     echo [ERROR] Scraper crashed or failed to start.
