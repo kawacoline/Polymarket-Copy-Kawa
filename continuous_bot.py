@@ -9,9 +9,8 @@ import subprocess
 from datetime import datetime, timezone
 from pathlib import Path
 from dotenv import load_dotenv
-from py_clob_client.client import ClobClient
-from py_clob_client.clob_types import MarketOrderArgs, OrderType
-from py_clob_client.order_builder.constants import BUY, SELL
+from py_clob_client_v2 import ClobClient, OrderArgs, PartialCreateOrderOptions, OrderType
+from py_clob_client_v2.order_builder.constants import BUY, SELL
 
 from logging_utils import setup_logger, log_dynamic
 
@@ -231,9 +230,15 @@ class CopyTradingBot:
         return False
     
     def get_clob_client(self):
-        """Get authenticated CLOB client"""
-        client = ClobClient(CLOB_API, key=PRIVATE_KEY, chain_id=137, signature_type=SIGNATURE_TYPE, funder=FUNDER_ADDRESS)
-        creds = client.derive_api_key()
+        """Get authenticated CLOB client (V2)"""
+        client = ClobClient(
+            host=CLOB_API,
+            key=PRIVATE_KEY,
+            chain_id=137,
+            signature_type=SIGNATURE_TYPE,
+            funder=FUNDER_ADDRESS,
+        )
+        creds = client.create_or_derive_api_key()
         client.set_api_creds(creds)
         return client
 
@@ -288,15 +293,27 @@ class CopyTradingBot:
             bot_log(f"Warning: Could not log to database: {e}", category="ERROR")
 
     def place_bet(self, token_id: str, dollar_amount: float, price: float):
-        """Place a bet on Polymarket"""
+        """Place a bet on Polymarket (V2 API)"""
         if price <= 0: raise ValueError(f"Invalid price: {price}")
         shares = dollar_amount / price
         bot_log(f"  Converting ${dollar_amount:.2f} at {price*100:.1f}¢ = {shares:.2f} shares")
         
         client = self.get_clob_client()
-        order = MarketOrderArgs(token_id=token_id, amount=shares, side=BUY, order_type=OrderType.FOK)
-        signed_order = client.create_market_order(order)
-        client.post_order(signed_order, OrderType.FOK)
+        # V2: Use create_and_post_order with FOK for immediate execution
+        response = client.create_and_post_order(
+            OrderArgs(
+                token_id=token_id,
+                price=price,
+                size=shares,
+                side=BUY,
+            ),
+            options=PartialCreateOrderOptions(
+                tick_size="0.01",
+                neg_risk=False,
+            ),
+            order_type=OrderType.FOK,
+        )
+        bot_log(f"  Order response: {response}")
 
     def check_account_for_trades(self, account: dict):
         """Check a single account for new trades"""

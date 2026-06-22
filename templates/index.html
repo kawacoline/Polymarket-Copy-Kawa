@@ -7619,6 +7619,16 @@
                                         <line x1="12" x2="12" y1="15" y2="3" />
                                     </svg> Withdrawals
                                 </a>
+                                <a href="#scraper-section"
+                                    class="inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors hover:bg-white/10 text-muted-foreground hover:text-foreground h-8 px-2"
+                                    title="Go to Scraper">
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                        stroke-linejoin="round" class="mr-1.5">
+                                        <circle cx="11" cy="11" r="8"></circle>
+                                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                                    </svg> Scraper
+                                </a>
                             </div>
                         </div>
                         <p class="text-xs text-muted-foreground font-mono mt-1">Polymarket Multi-Account Copy Trade
@@ -7985,6 +7995,24 @@
             </div>
             <div id="withdrawalsList">
                 <!-- Populated by JS -->
+            </div>
+        </div>
+
+        <!-- Scraper Log -->
+        <div id="scraper-section" class="glass-panel rounded-xl p-6 relative overflow-hidden scroll-m-24" style="margin-top: 32px; border-color: rgba(168, 85, 247, 0.2);">
+            <div class="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 flex items-center justify-between" style="color: #a855f7;">
+                <span>PROFITABLE WALLETS SCRAPER</span>
+                <div style="font-size: 11px; color: var(--text-dim);">
+                    Last Scrape: <span id="scraperLastRun" style="color: #fff; font-family: var(--font-mono);">--</span>
+                    <span style="margin: 0 8px;">|</span>
+                    Found: <span id="scraperTotal" style="color: #fff; font-family: var(--font-mono);">0</span>
+                </div>
+            </div>
+            <div id="scraperWalletsList" class="data-table-wrapper">
+                <div class="flex flex-col items-center justify-center py-12 text-muted-foreground space-y-4">
+                    <div class="spinner" style="border-top-color: #a855f7;"></div>
+                    <p>Fetching scraper status...</p>
+                </div>
             </div>
         </div>
     </div>

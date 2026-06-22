@@ -56,15 +56,15 @@ if not exist "venv\" (
 :: Install Python Dependencies
 echo [3/5] Installing Python dependencies...
 call venv\Scripts\activate.bat
-python -m pip install --upgrade pip
-pip install -r requirements.txt
+python -m pip install --upgrade pip -v
+pip install -r requirements.txt -v
 echo Python dependencies installed successfully.
 
 :: Install Scraper Dependencies (Node.js)
 echo [4/5] Installing Scraper dependencies (Node.js)...
 if exist "polymarket-profitablewallets-scrapper\package.json" (
     cd polymarket-profitablewallets-scrapper
-    call npm install
+    call npm install --verbose
     if !errorlevel! neq 0 (
         echo [WARNING] npm install failed. Check your internet connection or Node installation.
     ) else (

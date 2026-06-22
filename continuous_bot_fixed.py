@@ -4,9 +4,8 @@ import json
 import requests
 from datetime import datetime, timezone
 from dotenv import load_dotenv
-from py_clob_client.client import ClobClient
-from py_clob_client.clob_types import MarketOrderArgs, OrderType
-from py_clob_client.order_builder.constants import BUY, SELL
+from py_clob_client_v2 import ClobClient, OrderArgs, PartialCreateOrderOptions, OrderType
+from py_clob_client_v2.order_builder.constants import BUY, SELL
 
 load_dotenv()
 
@@ -277,15 +276,15 @@ class CopyTradingBot:
         return False
     
     def get_clob_client(self):
-        """Get authenticated CLOB client"""
+        """Get authenticated CLOB client (V2)"""
         client = ClobClient(
-            CLOB_API,
+            host=CLOB_API,
             key=PRIVATE_KEY,
             chain_id=137,
             signature_type=SIGNATURE_TYPE,
-            funder=FUNDER_ADDRESS
+            funder=FUNDER_ADDRESS,
         )
-        creds = client.derive_api_key()
+        creds = client.create_or_derive_api_key()
         client.set_api_creds(creds)
         return client
     
@@ -352,16 +351,7 @@ class CopyTradingBot:
             print(f"Warning: Could not log to database: {e}")
     
     def place_bet(self, token_id: str, dollar_amount: float, price: float):
-        """
-        Place a bet on Polymarket
-        
-        Args:
-            token_id: The token ID to buy
-            dollar_amount: Amount in dollars to spend (e.g., 2.0 for $2)
-            price: Current price per share (e.g., 0.65 for 65¢)
-        """
-        # Convert dollar amount to shares
-        # If price is 0.65 and we want to spend $2, we buy 2/0.65 = 3.077 shares
+        """Place a bet on Polymarket (V2 API)"""
         if price <= 0:
             raise ValueError(f"Invalid price: {price}. Cannot calculate shares.")
         
@@ -370,14 +360,21 @@ class CopyTradingBot:
         print(f"  Converting ${dollar_amount:.2f} at {price*100:.1f}¢ = {shares:.2f} shares")
         
         client = self.get_clob_client()
-        order = MarketOrderArgs(
-            token_id=token_id,
-            amount=shares,  # Now correctly passing SHARES, not dollars
-            side=BUY,
-            order_type=OrderType.FOK
+        # V2: Use create_and_post_order with FOK for immediate execution
+        response = client.create_and_post_order(
+            OrderArgs(
+                token_id=token_id,
+                price=price,
+                size=shares,
+                side=BUY,
+            ),
+            options=PartialCreateOrderOptions(
+                tick_size="0.01",
+                neg_risk=False,
+            ),
+            order_type=OrderType.FOK,
         )
-        signed_order = client.create_market_order(order)
-        client.post_order(signed_order, OrderType.FOK)
+        print(f"  Order response: {response}")
     
     def check_account_for_trades(self, account: dict):
         """Check a single account for new trades"""
@@ -659,15 +656,20 @@ class CopyTradingBot:
                     title = position.get("title", "Unknown")
                     
                     if size > 0:
-                        # Create sell order for full position
-                        order = MarketOrderArgs(
-                            token_id=token_id,
-                            amount=size,
-                            side=SELL,
-                            order_type=OrderType.FOK
+                        # V2: Create sell order using create_and_post_order
+                        response = client.create_and_post_order(
+                            OrderArgs(
+                                token_id=token_id,
+                                price=0.01,  # Sell at minimum price for FOK market sell
+                                size=size,
+                                side=SELL,
+                            ),
+                            options=PartialCreateOrderOptions(
+                                tick_size="0.01",
+                                neg_risk=False,
+                            ),
+                            order_type=OrderType.FOK,
                         )
-                        signed_order = client.create_market_order(order)
-                        client.post_order(signed_order, OrderType.FOK)
                         
                         closed_positions.append({
                             "title": title,

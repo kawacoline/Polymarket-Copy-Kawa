@@ -26,6 +26,8 @@ document.addEventListener('DOMContentLoaded', function () {
             await loadPositions();
             await new Promise(r => setTimeout(r, 200));
             await loadSimulatedPositions();
+            await new Promise(r => setTimeout(r, 200));
+            await loadScraperStatus();
         } catch (e) {
             console.error("Error in refresh loop:", e);
         }
@@ -744,6 +746,99 @@ async function loadWithdrawals() {
     }
 }
 
+async function loadScraperStatus() {
+    try {
+        const response = await fetch('/api/scraper/status');
+        const data = await response.json();
+
+        if (data.status === 'error') {
+            console.error('Scraper error:', data.message);
+            return;
+        }
+
+        const lastRunEl = document.getElementById('scraperLastRun');
+        const totalEl = document.getElementById('scraperTotal');
+        const listEl = document.getElementById('scraperWalletsList');
+
+        if (data.status === 'not_started' || !data.wallets) {
+            if (lastRunEl) lastRunEl.textContent = 'Never';
+            if (totalEl) totalEl.textContent = '0';
+            if (listEl) {
+                listEl.innerHTML = `
+                    <div class="flex flex-col items-center justify-center p-8 text-center text-muted-foreground bg-white/5 rounded-xl border border-white/5">
+                        <div class="text-4xl mb-4 opacity-50">⏳</div>
+                        <p>Scraper is starting or has not generated output yet.</p>
+                    </div>
+                `;
+            }
+            return;
+        }
+
+        if (lastRunEl) {
+            try {
+                const dt = new Date(data.scrapedAt);
+                lastRunEl.textContent = dt.toLocaleString();
+            } catch (e) {
+                lastRunEl.textContent = data.scrapedAt || '--';
+            }
+        }
+        if (totalEl) totalEl.textContent = (data.walletsCount || 0).toLocaleString();
+
+        if (listEl) {
+            if (data.wallets.length === 0) {
+                listEl.innerHTML = `
+                    <div class="flex flex-col items-center justify-center p-8 text-center text-muted-foreground bg-white/5 rounded-xl border border-white/5">
+                        <p>No profitable wallets found yet.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            listEl.innerHTML = `
+                <table class="w-full text-sm text-left whitespace-nowrap">
+                    <thead>
+                        <tr class="group hover:bg-white/5 transition-colors">
+                            <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Rank</th>
+                            <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Address / Alias</th>
+                            <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">PNL</th>
+                            <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Volume</th>
+                            <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Win Rate</th>
+                            <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Active Positions</th>
+                            <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Tags</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${data.wallets.map(w => {
+                            const displayName = w.userName ? w.userName : (w.address.substring(0,6) + '...' + w.address.substring(w.address.length-4));
+                            const pnlClass = w.pnl >= 0 ? 'positive' : 'negative';
+                            const tagsHtml = (w.tags || []).map(t => `<span class="inline-flex items-center rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-medium text-foreground whitespace-nowrap mr-1">${escapeHtml(t)}</span>`).join('');
+                            return \`
+                            <tr class="group hover:bg-white/5 transition-colors">
+                                <td class="px-4 py-3 border-b border-white/5">#\${w.rank || '?'}</td>
+                                <td class="px-4 py-3 border-b border-white/5">
+                                    <div class="flex items-center gap-2">
+                                        <a href="https://polymarket.com/profile/\${w.address}" target="_blank" class="text-blue-400 hover:text-blue-300 font-medium">\${escapeHtml(displayName)}</a>
+                                    </div>
+                                    <div class="text-[10px] text-muted-foreground font-mono mt-0.5">\${w.address}</div>
+                                </td>
+                                <td class="px-4 py-3 border-b border-white/5 font-mono \${pnlClass}">\${formatCurrency(w.pnl)}</td>
+                                <td class="px-4 py-3 border-b border-white/5 font-mono">\${formatCurrency(w.volume)}</td>
+                                <td class="px-4 py-3 border-b border-white/5 font-mono">\${w.winRate !== undefined ? (w.winRate * 100).toFixed(0) + '%' : '--'}</td>
+                                <td class="px-4 py-3 border-b border-white/5 font-mono">\${w.activePositions !== undefined ? w.activePositions : '--'}</td>
+                                <td class="px-4 py-3 border-b border-white/5">\${tagsHtml}</td>
+                            </tr>
+                            \`;
+                        }).join('')}
+                    </tbody>
+                </table>
+            `;
+        }
+
+    } catch (error) {
+        console.error('Error loading scraper status:', error);
+    }
+}
+
 function refreshAll() {
     loadStatus();
     loadPortfolioStats();
@@ -751,6 +846,7 @@ function refreshAll() {
     loadSimulatedPositions();
     loadAccounts();
     loadWithdrawals();
+    loadScraperStatus();
 }
 
 // ============================================================================

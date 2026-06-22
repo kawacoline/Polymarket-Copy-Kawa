@@ -58,30 +58,30 @@ if not PRIVATE_KEY or PRIVATE_KEY.startswith("your_"):
     issues.append("Cannot test authentication without valid PRIVATE_KEY")
 else:
     try:
-        from py_clob_client.client import ClobClient
+        from py_clob_client_v2 import ClobClient
         
         CLOB_API = "https://clob.polymarket.com"
         sig_type = int(SIGNATURE_TYPE) if SIGNATURE_TYPE else 1
         
         print(f"  Attempting to create CLOB client...")
         client = ClobClient(
-            CLOB_API,
+            host=CLOB_API,
             key=PRIVATE_KEY,
             chain_id=137,
             signature_type=sig_type,
-            funder=FUNDER_ADDRESS
+            funder=FUNDER_ADDRESS,
         )
         
         print(f"  Deriving API credentials...")
-        creds = client.derive_api_key()
+        creds = client.create_or_derive_api_key()
         client.set_api_creds(creds)
         
         print(f"  ✓ CLOB client authenticated successfully!")
         print(f"    API Key: {creds.api_key[:20]}...")
         
     except ImportError as e:
-        print(f"  ✗ py_clob_client not installed: {e}")
-        issues.append("py_clob_client library is not installed")
+        print(f"  ✗ py_clob_client_v2 not installed: {e}")
+        issues.append("py_clob_client_v2 library is not installed")
     except Exception as e:
         print(f"  ✗ Authentication failed: {e}")
         issues.append(f"CLOB authentication error: {str(e)}")
@@ -176,7 +176,7 @@ else:
     
     if any("py_clob_client" in issue for issue in issues):
         print("\n  Library Issue:")
-        print("  Run: pip install py-clob-client")
+        print("  Run: pip install py-clob-client-v2")
     
     if any("authentication" in issue.lower() for issue in issues):
         print("\n  Authentication Issue:")

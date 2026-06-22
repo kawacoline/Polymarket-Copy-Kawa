@@ -75,14 +75,19 @@ def main():
     run_cmd(["git", "pull", "origin", BRANCH], quiet=True)
     
     bot_process = None
+    scraper_process = None
     
     def start_bot():
-        nonlocal bot_process
+        nonlocal bot_process, scraper_process
         log(f"Starting {BOT_SCRIPT}...")
         bot_process = subprocess.Popen([PYTHON_EXE, BOT_SCRIPT], cwd=REPO_DIR)
         
+        log("Starting scraper...")
+        scraper_dir = os.path.join(REPO_DIR, "polymarket-profitablewallets-scrapper")
+        scraper_process = subprocess.Popen(["node", "src/index.js", "watch"], cwd=scraper_dir)
+        
     def stop_bot():
-        nonlocal bot_process
+        nonlocal bot_process, scraper_process
         if bot_process and bot_process.poll() is None:
             log("Stopping bot...")
             bot_process.terminate()
@@ -90,6 +95,14 @@ def main():
                 bot_process.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 bot_process.kill()
+                
+        if scraper_process and scraper_process.poll() is None:
+            log("Stopping scraper...")
+            scraper_process.terminate()
+            try:
+                scraper_process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                scraper_process.kill()
                 
     start_bot()
     
@@ -99,8 +112,9 @@ def main():
             time.sleep(CHECK_INTERVAL)
             
             # Check if crashed
-            if bot_process.poll() is not None:
-                log("Bot process died! Restarting...")
+            if bot_process.poll() is not None or scraper_process.poll() is not None:
+                log("A process died! Restarting both...")
+                stop_bot()
                 start_bot()
                 continue
                 

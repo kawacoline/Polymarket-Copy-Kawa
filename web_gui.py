@@ -13,9 +13,8 @@ from datetime import datetime, timezone
 from flask import Flask, render_template, jsonify, request, send_file
 from dotenv import load_dotenv
 import requests
-from py_clob_client.client import ClobClient
-from py_clob_client.clob_types import MarketOrderArgs, OrderType
-from py_clob_client.order_builder.constants import SELL
+from py_clob_client_v2 import ClobClient, OrderArgs, PartialCreateOrderOptions, OrderType
+from py_clob_client_v2.order_builder.constants import SELL
 import pandas as pd
 from io import BytesIO
 
@@ -74,9 +73,9 @@ log.propagate = False
 for h in log.handlers[:]:
     log.removeHandler(h)
 log.addHandler(DynamicAccessHandler())
-# Suppress noisy library loggers (py_clob_client prints "Make sure you have USDC" every call)
+# Suppress noisy library loggers (py_clob_client_v2 prints "Make sure you have USDC" every call)
 # These only affect the library's own loggers, not our app
-for _lib_name in ['py_clob_client', 'polymarket', 'clob_client']:
+for _lib_name in ['py_clob_client_v2', 'py_clob_client', 'polymarket', 'clob_client']:
     logging.getLogger(_lib_name).setLevel(logging.CRITICAL)
 
 # ---- USDC Balance: RPC Fallback Chain + Cache ----
@@ -112,13 +111,13 @@ def get_clob_client():
         return _clob_client
         
     _clob_client = ClobClient(
-        CLOB_API,
+        host=CLOB_API,
         key=PRIVATE_KEY,
         chain_id=137,
         signature_type=SIGNATURE_TYPE,
-        funder=FUNDER_ADDRESS
+        funder=FUNDER_ADDRESS,
     )
-    creds = _clob_client.derive_api_key()
+    creds = _clob_client.create_or_derive_api_key()
     _clob_client.set_api_creds(creds)
     return _clob_client
 
@@ -667,16 +666,21 @@ def close_position():
                 "dry_run": True
             })
         
-        # Execute sell order
+        # Execute sell order (V2)
         client = get_clob_client()
-        order = MarketOrderArgs(
-            token_id=token_id,
-            amount=amount,
-            side=SELL,
-            order_type=OrderType.FOK
+        response = client.create_and_post_order(
+            OrderArgs(
+                token_id=token_id,
+                price=0.01,  # Sell at minimum price for FOK market sell
+                size=amount,
+                side=SELL,
+            ),
+            options=PartialCreateOrderOptions(
+                tick_size="0.01",
+                neg_risk=False,
+            ),
+            order_type=OrderType.FOK,
         )
-        signed_order = client.create_market_order(order)
-        client.post_order(signed_order, OrderType.FOK)
         
         return jsonify({
             "success": True,
@@ -719,14 +723,19 @@ def api_panic_sell():
                 title = pos.get("title", "Unknown")
                 
                 if size > 0:
-                    order = MarketOrderArgs(
-                        token_id=token_id,
-                        amount=size,
-                        side=SELL,
-                        order_type=OrderType.FOK
+                    response = client.create_and_post_order(
+                        OrderArgs(
+                            token_id=token_id,
+                            price=0.01,  # Sell at minimum price for FOK market sell
+                            size=size,
+                            side=SELL,
+                        ),
+                        options=PartialCreateOrderOptions(
+                            tick_size="0.01",
+                            neg_risk=False,
+                        ),
+                        order_type=OrderType.FOK,
                     )
-                    signed_order = client.create_market_order(order)
-                    client.post_order(signed_order, OrderType.FOK)
                     
                     closed.append({
                         "title": title,
@@ -1322,6 +1331,23 @@ def export_full_report():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+@app.route('/api/scraper/status', methods=['GET'])
+def get_scraper_status():
+    scraper_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "polymarket-profitablewallets-scrapper", "output", "profitable_wallets.json")
+    if not os.path.exists(scraper_path):
+        return jsonify({"status": "not_started", "wallets": []})
+    
+    try:
+        with open(scraper_path, 'r') as f:
+            data = json.load(f)
+            return jsonify({
+                "status": "running",
+                "scrapedAt": data.get("scrapedAt", ""),
+                "walletsCount": data.get("walletsCount", 0),
+                "wallets": data.get("wallets", [])
+            })
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e), "wallets": []})
 
 if __name__ == '__main__':
     # Ensure database exists

@@ -26,16 +26,16 @@ print(f"Testing balance fetch for: {FUNDER_ADDRESS[:10]}...{FUNDER_ADDRESS[-6:]}
 # Test 1: Authenticated CLOB Client
 print("Test 1: Checking with authenticated CLOB client...")
 try:
-    from py_clob_client.client import ClobClient
+    from py_clob_client_v2 import ClobClient
     
     client = ClobClient(
-        CLOB_API,
+        host=CLOB_API,
         key=PRIVATE_KEY,
         chain_id=137,
         signature_type=SIGNATURE_TYPE,
-        funder=FUNDER_ADDRESS
+        funder=FUNDER_ADDRESS,
     )
-    creds = client.derive_api_key()
+    creds = client.create_or_derive_api_key()
     client.set_api_creds(creds)
     
     # Try get_balance_allowance

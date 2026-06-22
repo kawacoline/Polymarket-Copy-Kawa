@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "polymarket-docs": {
+      "command": "npx",
+      "args": ["-y", "@mintlify/mcp", "--server", "https://docs.polymarket.com/mcp"]
+    }
+  }
+}

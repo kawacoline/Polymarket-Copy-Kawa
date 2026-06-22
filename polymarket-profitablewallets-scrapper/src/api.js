@@ -30,11 +30,11 @@ function getClobAuthHeaders(method, requestPath, body = '') {
     .digest('base64');
 
   return {
-    'POLY-API-KEY': apiKey,
-    'POLY-API-SECRET': secret,
-    'POLY-PASSPHRASE': passphrase,
-    'POLY-TIMESTAMP': timestamp,
-    'POLY-SIGNATURE': signature,
+    'POLY_ADDRESS': process.env.POLYMARKET_WALLET_ADDRESS || '',
+    'POLY_API_KEY': apiKey,
+    'POLY_PASSPHRASE': passphrase,
+    'POLY_TIMESTAMP': timestamp,
+    'POLY_SIGNATURE': signature,
     'Accept': 'application/json'
   };
 }
@@ -104,7 +104,7 @@ async function fetchActivity(address, limit = 200) {
  * Fetch top active markets by volume from Gamma API
  */
 async function fetchActiveMarkets(limit = 50) {
-  const url = `https://gamma-api.polymarket.com/events?closed=false&active=true`;
+  const url = `https://gamma-api.polymarket.com/events?closed=false&active=true&limit=${limit}&order=volume&ascending=false`;
   try {
     const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
     if (!res.ok) throw new Error(`Gamma API HTTP ${res.status}`);
@@ -170,16 +170,20 @@ async function fetchDeepWallets(limit = 100) {
  */
 async function fetchWalletStats(address) {
   try {
-    const [profitRes, volRes] = await Promise.all([
-      apiFetch(`https://lb-api.polymarket.com/profit?window=all&address=${address}`),
-      apiFetch(`https://lb-api.polymarket.com/volume?window=all&address=${address}`)
-    ]);
-
-    // profit API returns array: [{"proxyWallet":"...","amount":1234.56}]
-    const pnl = (profitRes && profitRes[0] && profitRes[0].amount) ? parseFloat(profitRes[0].amount) : 0;
-    const volume = (volRes && volRes[0] && volRes[0].amount) ? parseFloat(volRes[0].amount) : 0;
-
-    return { pnl, volume };
+    // V2: Use Data API leaderboard endpoint (lb-api.polymarket.com is deprecated)
+    const data = await apiFetch('/v1/leaderboard', {
+      user: address,
+      timePeriod: 'ALL',
+      orderBy: 'PNL',
+      limit: 1
+    });
+    if (data && data.length > 0) {
+      return {
+        pnl: parseFloat(data[0].pnl) || 0,
+        volume: parseFloat(data[0].vol) || 0,
+      };
+    }
+    return { pnl: 0, volume: 0 };
   } catch (err) {
     return { pnl: 0, volume: 0 };
   }
@@ -195,7 +199,7 @@ async function fetchLiveTraders(marketsToCheck = 20, tradesPerMarket = 50) {
   console.log(`\n🌊 Live Discovery: Scanning the ${marketsToCheck} most active global markets for new traders...`);
   try {
     // 1. Get Top Events
-    const eventsRes = await fetch('https://gamma-api.polymarket.com/events?closed=false&active=true', { headers: { 'Accept': 'application/json' } });
+    const eventsRes = await fetch(`https://gamma-api.polymarket.com/events?closed=false&active=true&limit=${marketsToCheck}&order=volume&ascending=false`, { headers: { 'Accept': 'application/json' } });
     if (!eventsRes.ok) throw new Error(`Gamma events failed: ${eventsRes.status}`);
     const events = await eventsRes.json();
 
