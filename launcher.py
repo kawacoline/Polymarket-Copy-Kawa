@@ -36,7 +36,13 @@ else:  # Linux/Mac
     PIP_EXE = os.path.join(REPO_DIR, VENV_DIR, "bin", "pip")
 
 def log(msg):
-    print(f"[{time.strftime('%Y-%m-%d %H:%M:%S')}] {msg}", flush=True)
+    ts = time.strftime('%Y-%m-%d %H:%M:%S')
+    print(f"[{ts}] {msg}", flush=True)
+    try:
+        with open("main_log.log", "a", encoding="utf-8") as f:
+            f.write(f"{ts},000 - Launcher - INFO - {msg}\n")
+    except Exception:
+        pass
 
 def run_cmd(cmd, quiet=False):
     if quiet:
@@ -75,19 +81,14 @@ def main():
     run_cmd(["git", "pull", "origin", BRANCH], quiet=True)
     
     bot_process = None
-    scraper_process = None
     
     def start_bot():
-        nonlocal bot_process, scraper_process
+        nonlocal bot_process
         log(f"Starting {BOT_SCRIPT}...")
         bot_process = subprocess.Popen([PYTHON_EXE, BOT_SCRIPT], cwd=REPO_DIR)
         
-        log("Starting scraper...")
-        scraper_dir = os.path.join(REPO_DIR, "polymarket-profitablewallets-scrapper")
-        scraper_process = subprocess.Popen(["node", "src/index.js", "continuous"], cwd=scraper_dir)
-        
     def stop_bot():
-        nonlocal bot_process, scraper_process
+        nonlocal bot_process
         if bot_process and bot_process.poll() is None:
             log("Stopping bot...")
             bot_process.terminate()
@@ -95,14 +96,6 @@ def main():
                 bot_process.wait(timeout=5)
             except subprocess.TimeoutExpired:
                 bot_process.kill()
-                
-        if scraper_process and scraper_process.poll() is None:
-            log("Stopping scraper...")
-            scraper_process.terminate()
-            try:
-                scraper_process.wait(timeout=5)
-            except subprocess.TimeoutExpired:
-                scraper_process.kill()
                 
     start_bot()
     
@@ -112,8 +105,8 @@ def main():
             time.sleep(CHECK_INTERVAL)
             
             # Check if crashed
-            if bot_process.poll() is not None or scraper_process.poll() is not None:
-                log("A process died! Restarting both...")
+            if bot_process.poll() is not None:
+                log("Bot process died! Restarting...")
                 stop_bot()
                 start_bot()
                 continue

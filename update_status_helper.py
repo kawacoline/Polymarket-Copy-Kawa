@@ -26,7 +26,6 @@ def update_bot_status_for_accounts():
         # Load existing status or create new one
         status = {
             "running": False,
-            "dry_run": True,
             "last_check": None,
             "stats": {
                 "total_copied": 0,
@@ -46,7 +45,6 @@ def update_bot_status_for_accounts():
                     existing = json.load(f)
                     # Preserve important data
                     status["running"] = existing.get("running", False)
-                    status["dry_run"] = existing.get("dry_run", True)
                     status["last_check"] = existing.get("last_check")
                     status["message"] = existing.get("message", "Bot stopped")
                     status["stats"]["total_copied"] = existing.get("stats", {}).get("total_copied", 0)

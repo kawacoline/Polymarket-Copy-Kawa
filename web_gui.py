@@ -9,6 +9,8 @@ import json
 import sqlite3
 import threading
 import time
+import subprocess
+from collections import deque
 from datetime import datetime, timezone
 from flask import Flask, render_template, jsonify, request, send_file
 from dotenv import load_dotenv
@@ -98,9 +100,34 @@ _portfolio_ts = 0.0     # last successful portfolio calculation
 
 # Global instances to prevent memory leaks from constant re-init
 bot_instance = None
-bot_thread = None
 _clob_client = None
 _w3_instances = {} # rpc_url -> w3 instance
+
+# Scraper Management
+scraper_process = None
+scraper_logs = deque(maxlen=200)
+
+def read_scraper_output(process):
+    for line in iter(process.stdout.readline, ''):
+        if not line: break
+        log_line = line.strip()
+        if log_line:
+            scraper_logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] {log_line}")
+            # Also write to main_log.log
+            with open("main_log.log", "a", encoding="utf-8") as f:
+                f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')[:-3]} - Scraper - INFO - {log_line}\n")
+    process.stdout.close()
+
+def read_scraper_error(process):
+    for line in iter(process.stderr.readline, ''):
+        if not line: break
+        log_line = line.strip()
+        if log_line:
+            scraper_logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] ERROR: {log_line}")
+            # Also write to main_log.log
+            with open("main_log.log", "a", encoding="utf-8") as f:
+                f.write(f"{datetime.now().strftime('%Y-%m-%d %H:%M:%S,%f')[:-3]} - Scraper - ERROR - {log_line}\n")
+    process.stderr.close()
 
 
 def get_clob_client():
@@ -189,67 +216,6 @@ def get_positions():
         logger.error(f"Error fetching live positions: {e}")
         return []
 
-
-def get_simulated_positions():
-    try:
-        import sqlite3
-        import os
-        sim_db_path = "simulated_history.db"
-        
-        if not os.path.exists(sim_db_path):
-            return []
-            
-        conn = sqlite3.connect(sim_db_path)
-        conn.row_factory = sqlite3.Row
-        cursor = conn.cursor()
-            
-        # Group trades by token to find net position for dry run trades
-        cursor.execute("""
-            SELECT 
-                market_title as title,
-                outcome,
-                token_id as asset,
-                SUM(CASE WHEN side = 'BUY' THEN size ELSE -size END) as net_size,
-                SUM(CASE WHEN side = 'BUY' THEN size * price ELSE 0 END) as total_spent,
-                SUM(CASE WHEN side = 'BUY' THEN size ELSE 0 END) as total_bought,
-                GROUP_CONCAT(DISTINCT copied_from) as copied_from
-            FROM trades
-            GROUP BY token_id, market_title, outcome
-            HAVING net_size > 0.01
-        """)
-        
-        rows = cursor.fetchall()
-        conn.close()
-        
-        enhanced = []
-        for row in rows:
-            size = float(row['net_size'])
-            # Calculate average entry price
-            total_bought = float(row['total_bought'])
-            entry_price = float(row['total_spent']) / total_bought if total_bought > 0 else 0
-            
-            # Since we can't fetch live price easily without SDK, mock currentPrice as entry 
-            current_price = entry_price
-            
-            enhanced.append({
-                "title": row['title'],
-                "outcome": row['outcome'],
-                "asset": row['asset'],
-                "size": round(size, 2),
-                "price": round(entry_price, 4),
-                "currentPrice": round(current_price, 4),
-                "pnl": 0.0,
-                "pnl_percent": 0.0,
-                "current_value": round(size * current_price, 2),
-                "cost_basis": round(size * entry_price, 2),
-                "copied_from": row["copied_from"]
-            })
-            
-        return enhanced
-        
-    except Exception as e:
-        logger.error(f"Error calculating simulated positions from DB: {e}")
-        return []
 
 
 
@@ -470,7 +436,6 @@ def get_status():
         if status is None:
             status = {
                 "running": False,
-                "dry_run": True,
                 "last_check": None,
                 "stats": {},
                 "message": "Bot not started",
@@ -505,14 +470,12 @@ def get_status():
             
         events_session = status.get("stats", {}).get("total_copied", 0)
         live_events = status.get("stats", {}).get("live_copies", 0)
-        dry_events = status.get("stats", {}).get("dry_run_copies", 0)
         
         status["wallets_found"] = wallets_found
         status["db_records"] = db_records
         status["last_trade_time"] = last_trade_time
         status["events_session"] = events_session
         status["live_events_session"] = live_events
-        status["dry_events_session"] = dry_events
         
         # Override running status based on actual thread state if running within the GUI
         status["header_stats"] = {
@@ -577,22 +540,74 @@ def stop_bot():
         return jsonify({"error": str(e)}), 500
 
 
-@app.route('/api/bot/dry-run', methods=['POST'])
-def toggle_dry_run():
-    """Toggle dry run mode"""
-    global bot_instance
-    
+@app.route('/api/scraper/start', methods=['POST'])
+def start_scraper():
+    """Start the background scraper"""
+    global scraper_process, scraper_logs
     try:
-        data = request.json
-        dry_run = data.get('dry_run', True)
+        if scraper_process and scraper_process.poll() is None:
+            return jsonify({"error": "Scraper is already running"}), 400
+            
+        scraper_logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Starting Scraper...")
         
-        if bot_instance:
-            bot_instance.set_dry_run(dry_run)
+        # Determine paths
+        import sys
+        is_windows = sys.platform.startswith('win')
+        npm_cmd = "npm.cmd" if is_windows else "npm"
         
-        return jsonify({"success": True, "dry_run": dry_run})
-    
+        scraper_dir = os.path.join(os.getcwd(), "polymarket-profitablewallets-scrapper")
+        
+        scraper_process = subprocess.Popen(
+            [npm_cmd, "run", "continuous"],
+            cwd=scraper_dir,
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+            text=True,
+            bufsize=1
+        )
+        
+        threading.Thread(target=read_scraper_output, args=(scraper_process,), daemon=True).start()
+        threading.Thread(target=read_scraper_error, args=(scraper_process,), daemon=True).start()
+        
+        return jsonify({"success": True, "message": "Scraper started"})
+    except Exception as e:
+        logger.exception(f"API Error in /api/scraper/start: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/scraper/stop', methods=['POST'])
+def stop_scraper():
+    """Stop the background scraper"""
+    global scraper_process, scraper_logs
+    try:
+        if scraper_process and scraper_process.poll() is None:
+            import platform
+            if platform.system() == 'Windows':
+                # Force kill on Windows to terminate node and any children
+                subprocess.run(['taskkill', '/F', '/T', '/PID', str(scraper_process.pid)], capture_output=True)
+            else:
+                scraper_process.terminate()
+            scraper_process.wait(timeout=5)
+            scraper_logs.append(f"[{datetime.now().strftime('%H:%M:%S')}] Scraper stopped.")
+            return jsonify({"success": True, "message": "Scraper stopped"})
+        else:
+            return jsonify({"error": "Scraper is not running"}), 400
+    except Exception as e:
+        logger.exception(f"API Error in /api/scraper/stop: {e}")
+        return jsonify({"error": str(e)}), 500
+
+@app.route('/api/scraper/status', methods=['GET'])
+def get_scraper_status():
+    """Get scraper running state and logs"""
+    global scraper_process, scraper_logs
+    try:
+        is_running = scraper_process is not None and scraper_process.poll() is None
+        return jsonify({
+            "running": is_running,
+            "logs": list(scraper_logs)
+        })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 
 @app.route('/api/positions', methods=['GET'])
@@ -603,36 +618,6 @@ def api_get_positions():
         return jsonify(positions)
     
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/simulated_positions', methods=['GET'])
-def api_get_simulated_positions():
-    """Get simulated dry run positions"""
-    try:
-        positions = get_simulated_positions()
-        return jsonify(positions)
-    
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route('/api/simulated_positions/clear', methods=['POST'])
-def api_clear_simulated_positions():
-    """Wipe all simulated trades"""
-    try:
-        import sqlite3
-        import os
-        sim_db_path = "simulated_history.db"
-        if os.path.exists(sim_db_path):
-            conn = sqlite3.connect(sim_db_path)
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM trades")
-            conn.commit()
-            conn.close()
-            return jsonify({"success": True, "message": "Simulated trades cleared."})
-        else:
-            return jsonify({"success": True, "message": "No simulated db found."})
-    except Exception as e:
-        logger.exception(f"Error clearing simulated DB: {e}")
         return jsonify({"error": str(e)}), 500
 
 
@@ -654,17 +639,9 @@ def close_position():
         data = request.json
         token_id = data.get('token_id')
         amount = float(data.get('amount'))  # Amount to sell
-        dry_run = data.get('dry_run', False)
         
         if not token_id or amount <= 0:
             return jsonify({"error": "Invalid token_id or amount"}), 400
-        
-        if dry_run:
-            return jsonify({
-                "success": True,
-                "message": f"DRY RUN: Would sell {amount} shares",
-                "dry_run": True
-            })
         
         # Execute sell order (V2)
         client = get_clob_client()
@@ -696,20 +673,11 @@ def api_panic_sell():
     """Close all positions immediately"""
     try:
         data = request.json
-        dry_run = data.get('dry_run', False)
         
         positions = get_positions()
         
         if not positions:
             return jsonify({"success": True, "message": "No positions to close", "closed": []})
-        
-        if dry_run:
-            return jsonify({
-                "success": True,
-                "message": f"DRY RUN: Would close {len(positions)} positions",
-                "dry_run": True,
-                "positions": positions
-            })
         
         # Close all positions
         client = get_clob_client()

@@ -45,7 +45,6 @@ def bot_log(msg, category=None):
 class CopyTradingBot:
     def __init__(self):
         self.running = False
-        self.dry_run = os.getenv("DRY_RUN", "True").lower() == "true"
         self.seen_trades = self.load_seen_trades()
         self.active_event_trades = set() # Memory guard for the current session
         self.last_check = None
@@ -57,7 +56,6 @@ class CopyTradingBot:
         self.stats = {
             "total_copied": 0,
             "live_copies": 0,
-            "dry_run_copies": 0,
             "successful_copies": 0,
             "failed_copies": 0,
             "last_trade_copied": None,
@@ -154,7 +152,6 @@ class CopyTradingBot:
         
         status = {
             "running": self.running,
-            "dry_run": self.dry_run,
             "last_check": self.last_check,
             "stats": self.stats,
             "message": message,
@@ -243,10 +240,10 @@ class CopyTradingBot:
         return client
 
     def log_trade_to_database(self, trade_id, timestamp, market_title, condition_id, outcome_index, 
-                           outcome, size, price, token_id, is_dry_run=True, copied_from=""):
+                           outcome, size, price, token_id, copied_from=""):
         """Log a trade to the SQLite database for tracking and P&L"""
         try:
-            db_path = Path("simulated_history.db") if is_dry_run else Path("betting_history.db")
+            db_path = Path("betting_history.db")
             conn = sqlite3.connect(db_path)
             cursor = conn.cursor()
             
@@ -264,13 +261,12 @@ class CopyTradingBot:
                     token_id TEXT,
                     status TEXT DEFAULT 'OPEN',
                     created_date TEXT,
-                    is_dry_run INTEGER DEFAULT 1,
                     copied_from TEXT
                 )
             """)
             
             # Migration/Maintenance
-            for col in ["is_dry_run INTEGER DEFAULT 1", "copied_from TEXT"]:
+            for col in ["copied_from TEXT"]:
                 try: cursor.execute(f"ALTER TABLE trades ADD COLUMN {col}")
                 except: pass
             
@@ -278,10 +274,10 @@ class CopyTradingBot:
             cursor.execute("""
                 INSERT OR REPLACE INTO trades 
                 (id, timestamp, market_title, condition_id, outcome_index, outcome, 
-                 side, size, price, token_id, created_date, is_dry_run, copied_from)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 side, size, price, token_id, created_date, copied_from)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """, (trade_id, timestamp, market_title, condition_id, outcome_index, outcome, 
-                 "BUY", size, price, token_id, created_date, 1 if is_dry_run else 0, copied_from))
+                 "BUY", size, price, token_id, created_date, copied_from))
             
             conn.commit()
             conn.close()
@@ -357,14 +353,14 @@ class CopyTradingBot:
                 return
 
             # SESSION LIMIT CHECK
-            if not self.dry_run and self.trades_this_session >= MAX_TRADES_PER_SESSION:
+            if self.trades_this_session >= MAX_TRADES_PER_SESSION:
                 bot_log(f"  [SESSION LIMIT] Max trades reached. Skipping {name}'s trade.", category="SESSION_LIMIT")
                 if trade_id: self.seen_trades.add(trade_id); self.save_seen_trades()
                 return
             
             # EVENT LIMIT CHECK (DB)
             try:
-                db_path = Path("simulated_history.db") if self.dry_run else Path("betting_history.db")
+                db_path = Path("betting_history.db")
                 if db_path.exists():
                     conn = sqlite3.connect(db_path)
                     cursor = conn.cursor()
@@ -387,21 +383,16 @@ class CopyTradingBot:
 
             trade_summary = f"[{datetime.now().strftime('%H:%M:%S')}] [NEW] {name} -> {title} ({outcome}) @ {price*100:.1f}¢"
             
-            if self.dry_run:
-                bot_log(trade_summary + " [DRY RUN]", category=f"TRADE_{trade_id}")
-                self.log_trade_to_database(trade_id, int(time.time()), title, condition_id, outcome_index, outcome, shares, price, asset_id, True, name)
-                self.stats["dry_run_copies"] += 1
-            else:
-                bot_log(trade_summary + " [EXECUTING]", category=f"TRADE_START_{trade_id}")
-                try:
-                    self.place_bet(asset_id, bet_amount, price)
-                    self.log_trade_to_database(trade_id, int(time.time()), title, condition_id, outcome_index, outcome, shares, price, asset_id, False, name)
-                    self.stats["live_copies"] += 1
-                    self.trades_this_session += 1
-                    bot_log(f"  [OK] Success! Session: {self.trades_this_session}/{MAX_TRADES_PER_SESSION}", category="SESSION_STATS")
-                except Exception as e:
-                    bot_log(f"Execution Error: {e}", category="ERROR")
-                    self.stats["failed_copies"] += 1
+            bot_log(trade_summary + " [EXECUTING]", category=f"TRADE_START_{trade_id}")
+            try:
+                self.place_bet(asset_id, bet_amount, price)
+                self.log_trade_to_database(trade_id, int(time.time()), title, condition_id, outcome_index, outcome, shares, price, asset_id, name)
+                self.stats["live_copies"] += 1
+                self.trades_this_session += 1
+                bot_log(f"  [OK] Success! Session: {self.trades_this_session}/{MAX_TRADES_PER_SESSION}", category="SESSION_STATS")
+            except Exception as e:
+                bot_log(f"Execution Error: {e}", category="ERROR")
+                self.stats["failed_copies"] += 1
 
             self.stats["total_copied"] += 1
             self.stats["successful_copies"] += 1
@@ -422,7 +413,7 @@ class CopyTradingBot:
             
             if not self.target_accounts: return
             
-            if not self.dry_run and self.trades_this_session >= MAX_TRADES_PER_SESSION:
+            if self.trades_this_session >= MAX_TRADES_PER_SESSION:
                 if not self.session_limit_alerted:
                     bot_log(f"⚠️ SESSION LIMIT REACHED ({MAX_TRADES_PER_SESSION}). idling.", category="SESSION_LIMIT")
                     self.session_limit_alerted = True
@@ -450,7 +441,7 @@ class CopyTradingBot:
         
         bot_log("="*50, category="BOT_START")
         bot_log("  Polymarket Copy Bot Started", category="BOT_START")
-        bot_log(f"  Funder: {FUNDER_ADDRESS} | Dry Run: {self.dry_run}", category="BOT_START")
+        bot_log(f"  Funder: {FUNDER_ADDRESS}", category="BOT_START")
         bot_log("="*50, category="BOT_START")
         
         try:

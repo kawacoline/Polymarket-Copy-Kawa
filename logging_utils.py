@@ -14,20 +14,14 @@ def setup_logger(name="PolymarketBot", console=True):
     for h in logger.handlers[:]:
         logger.removeHandler(h)
         
-    os.makedirs('logs', exist_ok=True)
-    
-    f_handler = logging.FileHandler('logs/bot.log', encoding='utf-8')
-    e_handler = logging.FileHandler('logs/error.log', encoding='utf-8')
+    f_handler = logging.FileHandler('main_log.log', encoding='utf-8')
     
     log_format = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
     f_handler.setFormatter(log_format)
-    e_handler.setFormatter(log_format)
     
     f_handler.setLevel(logging.INFO)
-    e_handler.setLevel(logging.ERROR)
     
     logger.addHandler(f_handler)
-    logger.addHandler(e_handler)
     
     if console:
         c_handler = logging.StreamHandler(sys.stdout)
@@ -76,16 +70,12 @@ def log_dynamic(logger, msg, category=None):
     
     _last_category = cat
     
-    # Log to file: Always on first occurrence, then periodically for stats/polling
-    # to avoid blank log files while preventing massive bloat.
-    record_to_file = False
-    if count == 1:
-        record_to_file = True
-    elif "POLLING" in cat or "MAIN_LOOP" in cat:
-        if count % 100 == 0: # Log every 100th polling/loop message
-            record_to_file = True
-    elif count % 20 == 0: # Log every 20th of other dynamic categories
-        record_to_file = True
+    # Log to file: Always record to file so the user has a complete history
+    record_to_file = True
+    
+    # Throttle HTTP_POLLING only, to prevent massive disk bloat (still logs every 20)
+    if "POLLING" in cat and count > 1 and count % 20 != 0:
+        record_to_file = False
 
     if record_to_file:
         for handler in logger.handlers:

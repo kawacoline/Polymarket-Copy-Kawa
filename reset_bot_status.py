@@ -56,7 +56,6 @@ if os.path.exists(STATUS_FILE):
 # Create fresh status
 new_status = {
     "running": False,
-    "dry_run": True,
     "last_check": None,
     "stats": {
         "total_copied": existing_stats.get("total_copied", 0),

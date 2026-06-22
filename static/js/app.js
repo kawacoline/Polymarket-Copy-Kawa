@@ -25,8 +25,6 @@ document.addEventListener('DOMContentLoaded', function () {
             await new Promise(r => setTimeout(r, 200));
             await loadPositions();
             await new Promise(r => setTimeout(r, 200));
-            await loadSimulatedPositions();
-            await new Promise(r => setTimeout(r, 200));
             await loadScraperStatus();
         } catch (e) {
             console.error("Error in refresh loop:", e);
@@ -80,28 +78,6 @@ async function stopBot() {
     }
 }
 
-async function toggleDryRun() {
-    const dryRun = document.getElementById('dryRunToggle').checked;
-
-    try {
-        const response = await fetch('/api/bot/dry-run', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({ dry_run: dryRun })
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            showNotification(dryRun ? 'Dry run mode enabled' : 'Live trading enabled', 'info');
-        }
-    } catch (error) {
-        showNotification('Error toggling dry run: ' + error.message, 'error');
-    }
-}
-
 // ============================================================================
 // DATA LOADING FUNCTIONS
 // ============================================================================
@@ -112,7 +88,6 @@ async function loadStatus() {
         const data = await response.json();
 
         isBotRunning = data.running;
-        isDryRun = data.dry_run;
         
         // Save funder address for linking
         if (data.funder_address) {
@@ -133,9 +108,6 @@ async function loadStatus() {
             document.getElementById('startBtn').disabled = false;
             document.getElementById('stopBtn').disabled = true;
         }
-
-        // Update dry run toggle
-        document.getElementById('dryRunToggle').checked = data.dry_run || false;
 
         // Update accounts badge
         const trackedCount = data.tracked_accounts || 0;
@@ -323,121 +295,6 @@ async function loadPositions() {
     }
 }
 
-async function loadSimulatedPositions() {
-    try {
-        const response = await fetch('/api/simulated_positions');
-        const positions = await response.json();
-
-        const container = document.getElementById('simulatedPositionsList');
-
-        if (positions.length === 0) {
-            container.innerHTML = `
-                <div class="flex flex-col items-center justify-center p-8 text-center text-muted-foreground bg-white/5 rounded-xl border border-white/5" style="border-color: rgba(62, 168, 255, 0.1);">
-                    <div class="text-4xl mb-4 opacity-50">👻</div>
-                    <p style="color: #3ea8ff;">No simulated trades to display</p>
-                </div>
-            `;
-            return;
-        }
-
-        container.innerHTML = `
-            <table class="w-full text-sm text-left whitespace-nowrap">
-                <thead>
-                    <tr class="group hover:bg-white/5 transition-colors">
-                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Market</th>
-                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Outcome</th>
-                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Cost</th>
-                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Value</th>
-                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">P&L</th>
-                        <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Copied From</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${positions.map(pos => {
-                        // Build copied_from links
-                        let copiedLinks = '-';
-                        if (pos.copied_from) {
-                            const wallets = pos.copied_from.split(',');
-                            copiedLinks = wallets.map(w => {
-                                const trimW = w.trim();
-                                const short = trimW.substring(0, 6) + '...' + trimW.substring(trimW.length - 4);
-                                 return `
-                                 <div class="inline-flex items-center gap-1 group/copied">
-                                     <a href="https://polymarket.com/profile/${trimW}" target="_blank" class="text-blue-400 hover:text-blue-300 underline text-xs">${short}</a>
-                                     <button onclick="jumpToWallet('${trimW}')" class="p-1 hover:bg-white/10 rounded-md text-muted-foreground hover:text-white transition-colors" title="Jump to Wallet in Dashboard">
-                                         <svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
-                                     </button>
-                                 </div>`;
-                            }).join(', ');
-                        }
-                        
-                        // Build our profile link
-                        const ourProfileLink = window.ourAddress ? `<a href="https://polymarket.com/profile/${window.ourAddress}" target="_blank" class="text-xs text-muted-foreground hover:text-foreground inline-flex items-center ml-2" title="View Our Profile on Polymarket">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
-                        </a>` : '';
-
-                        return `
-                        <tr class="group hover:bg-white/5 transition-colors">
-                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
-                                <div style="display: flex; align-items: center;">
-                                    <div style="font-weight: 600; color: #fff; max-width: 250px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${escapeHtml(pos.title || 'Unknown Market')}">
-                                        ${escapeHtml(pos.title || 'Unknown Market')}
-                                    </div>
-                                    ${ourProfileLink}
-                                </div>
-                            </td>
-                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
-                                <div style="font-weight: 500;">${escapeHtml(pos.outcome || 'Unknown')}</div>
-                                <div style="font-size: 11px; color: var(--text-dim);">${pos.size.toFixed(2)} sh</div>
-                            </td>
-                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">${formatCurrency(pos.cost_basis)}</td>
-                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
-                                <div style="font-weight: 600;">${formatCurrency(pos.current_value)}</div>
-                            </td>
-                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
-                                <div class="${pos.pnl >= 0 ? 'positive' : 'negative'}">
-                                    ${formatCurrency(pos.pnl)}
-                                </div>
-                                <div class="${pos.pnl >= 0 ? 'positive' : 'negative'}" style="font-size: 11px;">
-                                    ${pos.pnl_percent >= 0 ? '+' : ''}${pos.pnl_percent.toFixed(2)}%
-                                </div>
-                            </td>
-                            <td class="px-4 py-3 border-b border-white/5 group-hover:bg-white/5 transition-colors">
-                                ${copiedLinks}
-                            </td>
-                        </tr>
-                        `;
-                    }).join('')}
-                </tbody>
-            </table>
-        `;
-
-    } catch (error) {
-        console.error('Error loading simulated positions:', error);
-        document.getElementById('simulatedPositionsList').innerHTML = `
-            <div class="flex flex-col items-center justify-center p-8 text-center text-muted-foreground bg-white/5 rounded-xl border border-white/5">
-                <p style="color: #f56565;">Error loading simulated positions</p>
-            </div>
-        `;
-    }
-}
-
-
-async function clearSimulatedTrades() {
-    if (!confirm('Are you sure you want to clear all simulated trades? This cannot be undone.')) return;
-    try {
-        const response = await fetch('/api/simulated_positions/clear', { method: 'POST' });
-        const data = await response.json();
-        if (data.success) {
-            showNotification('Simulated trades cleared', 'success');
-            loadSimulatedPositions();
-        } else {
-            showNotification(data.error || 'Failed to clear', 'error');
-        }
-    } catch (error) {
-        showNotification('Error clearing simulated trades: ' + error.message, 'error');
-    }
-}
 async function loadAccounts() {
     try {
         const response = await fetch('/api/accounts');
@@ -751,91 +608,67 @@ async function loadScraperStatus() {
         const response = await fetch('/api/scraper/status');
         const data = await response.json();
 
-        if (data.status === 'error') {
-            console.error('Scraper error:', data.message);
-            return;
+        const indicator = document.getElementById('scraperStatusIndicator');
+        const text = document.getElementById('scraperStatusText');
+        const startBtn = document.getElementById('startScraperBtn');
+        const stopBtn = document.getElementById('stopScraperBtn');
+
+        if (data.running) {
+            if (indicator) indicator.className = 'w-2 h-2 rounded-full bg-green-500';
+            if (text) text.textContent = 'RUNNING';
+            if (startBtn) startBtn.disabled = true;
+            if (stopBtn) stopBtn.disabled = false;
+        } else {
+            if (indicator) indicator.className = 'w-2 h-2 rounded-full bg-red-500';
+            if (text) text.textContent = 'STOPPED';
+            if (startBtn) startBtn.disabled = false;
+            if (stopBtn) stopBtn.disabled = true;
         }
 
-        const lastRunEl = document.getElementById('scraperLastRun');
-        const totalEl = document.getElementById('scraperTotal');
-        const listEl = document.getElementById('scraperWalletsList');
-
-        if (data.status === 'not_started' || !data.wallets) {
-            if (lastRunEl) lastRunEl.textContent = 'Never';
-            if (totalEl) totalEl.textContent = '0';
-            if (listEl) {
-                listEl.innerHTML = `
-                    <div class="flex flex-col items-center justify-center p-8 text-center text-muted-foreground bg-white/5 rounded-xl border border-white/5">
-                        <div class="text-4xl mb-4 opacity-50">⏳</div>
-                        <p>Scraper is starting or has not generated output yet.</p>
-                    </div>
-                `;
-            }
-            return;
-        }
-
-        if (lastRunEl) {
-            try {
-                const dt = new Date(data.scrapedAt);
-                lastRunEl.textContent = dt.toLocaleString();
-            } catch (e) {
-                lastRunEl.textContent = data.scrapedAt || '--';
+        const container = document.getElementById('scraperLogsContainer');
+        if (container && data.logs) {
+            const newContent = data.logs.join('\n') || 'No logs yet...';
+            if (container.textContent !== newContent) {
+                container.textContent = newContent;
+                // Auto-scroll to bottom
+                const scrollWrapper = document.getElementById('scraperLogsScroll');
+                if (scrollWrapper) {
+                    scrollWrapper.scrollTop = scrollWrapper.scrollHeight;
+                }
             }
         }
-        if (totalEl) totalEl.textContent = (data.walletsCount || 0).toLocaleString();
-
-        if (listEl) {
-            if (data.wallets.length === 0) {
-                listEl.innerHTML = `
-                    <div class="flex flex-col items-center justify-center p-8 text-center text-muted-foreground bg-white/5 rounded-xl border border-white/5">
-                        <p>No profitable wallets found yet.</p>
-                    </div>
-                `;
-                return;
-            }
-
-            listEl.innerHTML = `
-                <table class="w-full text-sm text-left whitespace-nowrap">
-                    <thead>
-                        <tr class="group hover:bg-white/5 transition-colors">
-                            <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Rank</th>
-                            <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Address / Alias</th>
-                            <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">PNL</th>
-                            <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Volume</th>
-                            <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Win Rate</th>
-                            <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Active Positions</th>
-                            <th class="px-4 py-3 font-semibold text-muted-foreground border-b border-border/50">Tags</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        ${data.wallets.map(w => {
-                            const displayName = w.userName ? w.userName : (w.address.substring(0,6) + '...' + w.address.substring(w.address.length-4));
-                            const pnlClass = w.pnl >= 0 ? 'positive' : 'negative';
-                            const tagsHtml = (w.tags || []).map(t => `<span class="inline-flex items-center rounded-md border border-white/10 bg-white/5 px-2 py-1 text-[10px] font-medium text-foreground whitespace-nowrap mr-1">${escapeHtml(t)}</span>`).join('');
-                            return \`
-                            <tr class="group hover:bg-white/5 transition-colors">
-                                <td class="px-4 py-3 border-b border-white/5">#\${w.rank || '?'}</td>
-                                <td class="px-4 py-3 border-b border-white/5">
-                                    <div class="flex items-center gap-2">
-                                        <a href="https://polymarket.com/profile/\${w.address}" target="_blank" class="text-blue-400 hover:text-blue-300 font-medium">\${escapeHtml(displayName)}</a>
-                                    </div>
-                                    <div class="text-[10px] text-muted-foreground font-mono mt-0.5">\${w.address}</div>
-                                </td>
-                                <td class="px-4 py-3 border-b border-white/5 font-mono \${pnlClass}">\${formatCurrency(w.pnl)}</td>
-                                <td class="px-4 py-3 border-b border-white/5 font-mono">\${formatCurrency(w.volume)}</td>
-                                <td class="px-4 py-3 border-b border-white/5 font-mono">\${w.winRate !== undefined ? (w.winRate * 100).toFixed(0) + '%' : '--'}</td>
-                                <td class="px-4 py-3 border-b border-white/5 font-mono">\${w.activePositions !== undefined ? w.activePositions : '--'}</td>
-                                <td class="px-4 py-3 border-b border-white/5">\${tagsHtml}</td>
-                            </tr>
-                            \`;
-                        }).join('')}
-                    </tbody>
-                </table>
-            `;
-        }
-
     } catch (error) {
         console.error('Error loading scraper status:', error);
+    }
+}
+
+async function startScraper() {
+    try {
+        const response = await fetch('/api/scraper/start', { method: 'POST' });
+        const data = await response.json();
+        if (data.success) {
+            showNotification('Scraper started', 'success');
+            loadScraperStatus();
+        } else {
+            showNotification(data.error || 'Failed to start scraper', 'error');
+        }
+    } catch (error) {
+        showNotification('Error starting scraper: ' + error.message, 'error');
+    }
+}
+
+async function stopScraper() {
+    try {
+        const response = await fetch('/api/scraper/stop', { method: 'POST' });
+        const data = await response.json();
+        if (data.success) {
+            showNotification('Scraper stopped', 'info');
+            loadScraperStatus();
+        } else {
+            showNotification(data.error || 'Failed to stop scraper', 'error');
+        }
+    } catch (error) {
+        showNotification('Error stopping scraper: ' + error.message, 'error');
     }
 }
 
@@ -843,7 +676,6 @@ function refreshAll() {
     loadStatus();
     loadPortfolioStats();
     loadPositions();
-    loadSimulatedPositions();
     loadAccounts();
     loadWithdrawals();
     loadScraperStatus();
@@ -1028,8 +860,7 @@ async function executeSell() {
             },
             body: JSON.stringify({
                 token_id: currentSellPosition.asset,
-                amount: sharesToSell,
-                dry_run: document.getElementById('dryRunToggle').checked
+                amount: sharesToSell
             })
         });
 
@@ -1040,7 +871,6 @@ async function executeSell() {
             closeModal('partialSellModal');
             setTimeout(() => {
                 loadPositions();
-                loadSimulatedPositions();
                 loadPortfolioStats();
             }, 2000);
         } else {
@@ -1064,8 +894,7 @@ async function closeFullPosition(position) {
             },
             body: JSON.stringify({
                 token_id: position.asset,
-                amount: position.size,
-                dry_run: document.getElementById('dryRunToggle').checked
+                amount: position.size
             })
         });
 
@@ -1096,9 +925,7 @@ async function executePanicSell() {
             headers: {
                 'Content-Type': 'application/json'
             },
-            body: JSON.stringify({
-                dry_run: document.getElementById('dryRunToggle').checked
-            })
+            body: JSON.stringify({})
         });
 
         const data = await response.json();

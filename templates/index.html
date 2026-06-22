@@ -7596,18 +7596,7 @@
                                         <path d="M18 10L18 16" />
                                     </svg> Positions
                                 </a>
-                                <a href="#simluated"
-                                    class="inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors hover:bg-white/10 text-muted-foreground hover:text-foreground h-8 px-2"
-                                    title="Go to Simulated Trades">
-                                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
-                                        fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                                        stroke-linejoin="round" class="mr-1.5">
-                                        <path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/>
-                                        <polyline points="14 2 14 8 20 8"/>
-                                        <path d="M9.5 16h5"/>
-                                        <path d="M8 12h8"/>
-                                    </svg> Simulated
-                                </a>
+
                                 <a href="#withdrawals-section"
                                     class="inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors hover:bg-white/10 text-muted-foreground hover:text-foreground h-8 px-2"
                                     title="Go to Withdrawals">
@@ -7663,14 +7652,7 @@
                     <span id="statusText" class="text-xs font-semibold tracking-wide">OFFLINE</span>
                 </div>
                 <div class="w-px h-6 bg-white/10 hidden sm:block mx-1"></div>
-                <div class="shrink-0 flex items-center gap-2 text-xs">
-                    <span style="color: var(--text-dim);">DRY RUN:</span>
-                    <label class="toggle-switch transform scale-75 origin-left" style="margin:0;">
-                        <input type="checkbox" id="dryRunToggle" onchange="toggleDryRun()" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
-                <div class="w-px h-6 bg-white/10 hidden sm:block mx-1"></div>
+
                 <button
                     class="shrink-0 inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors h-8 px-3 border border-input bg-transparent shadow-sm hover:bg-accent hover:text-accent-foreground"
                     onclick="refreshAll()">
@@ -7710,8 +7692,6 @@
                         <span class="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">Events (session)</span>
                         <div class="flex items-baseline gap-1.5">
                             <span id="header-stat-events-live" class="text-sm font-mono font-medium text-foreground" title="Live Executions">--</span>
-                            <span class="text-[10px] text-muted-foreground opacity-40">/</span>
-                            <span id="header-stat-events-dry" class="text-[11px] font-mono font-medium text-muted-foreground" title="Dry Run (Simulated)">--</span>
                         </div>
                     </div>
                 </div>
@@ -7956,24 +7936,6 @@
             </div>
         </div>
 
-        <!-- Simulated Positions -->
-        <div id="simluated-section" class="glass-panel rounded-xl p-6 relative overflow-hidden scroll-m-24"
-            style="margin-bottom: 32px; border-color: rgba(62, 168, 255, 0.2);">
-            <div
-                class="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 flex items-center justify-between" style="color: #3ea8ff;">
-                <span>SIMULATED TRADES (DRY RUN)</span>
-                <button onclick="clearSimulatedTrades()" title="Clear all simulated trades" style="background: none; border: 1px solid rgba(245, 101, 101, 0.3); border-radius: 6px; padding: 4px 8px; cursor: pointer; display: inline-flex; align-items: center; gap: 4px; color: #f56565; font-size: 11px; transition: all 0.2s;" onmouseover="this.style.background='rgba(245,101,101,0.15)'; this.style.borderColor='rgba(245,101,101,0.6)';" onmouseout="this.style.background='none'; this.style.borderColor='rgba(245,101,101,0.3)';">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg>
-                    Clear
-                </button>
-            </div>
-            <div id="simulatedPositionsList" class="data-table-wrapper">
-                <div class="flex flex-col items-center justify-center py-12 text-muted-foreground space-y-4">
-                    <div class="spinner" style="border-top-color: #3ea8ff;"></div>
-                    <p>Fetching simulations...</p>
-                </div>
-            </div>
-        </div>
 
         <!-- Withdrawal & Cashout Log -->
         <div id="withdrawals-section" class="glass-panel rounded-xl p-6 relative overflow-hidden scroll-m-24">
@@ -7999,20 +7961,33 @@
         </div>
 
         <!-- Scraper Log -->
+        <!-- Scraper Log -->
         <div id="scraper-section" class="glass-panel rounded-xl p-6 relative overflow-hidden scroll-m-24" style="margin-top: 32px; border-color: rgba(168, 85, 247, 0.2);">
             <div class="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-4 flex items-center justify-between" style="color: #a855f7;">
-                <span>PROFITABLE WALLETS SCRAPER</span>
-                <div style="font-size: 11px; color: var(--text-dim);">
-                    Last Scrape: <span id="scraperLastRun" style="color: #fff; font-family: var(--font-mono);">--</span>
-                    <span style="margin: 0 8px;">|</span>
-                    Found: <span id="scraperTotal" style="color: #fff; font-family: var(--font-mono);">0</span>
+                <div class="flex items-center gap-4">
+                    <span>PROFITABLE WALLETS SCRAPER</span>
+                    <div class="flex items-center gap-2">
+                        <div id="scraperStatusIndicator" class="w-2 h-2 rounded-full bg-red-500"></div>
+                        <span id="scraperStatusText" class="text-[10px] text-muted-foreground">STOPPED</span>
+                    </div>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                    <button id="startScraperBtn"
+                        class="inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors border border-input bg-transparent shadow-sm hover:bg-accent hover:text-accent-foreground h-8 px-3"
+                        style="padding: 6px 14px; font-size: 11px;" onclick="startScraper()">
+                        ▶ START
+                    </button>
+                    <button id="stopScraperBtn"
+                        class="inline-flex items-center justify-center rounded-md text-xs font-medium transition-colors bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 h-8 px-3"
+                        style="padding: 6px 14px; font-size: 11px;" onclick="stopScraper()" disabled>
+                        ⏹ STOP
+                    </button>
                 </div>
             </div>
-            <div id="scraperWalletsList" class="data-table-wrapper">
-                <div class="flex flex-col items-center justify-center py-12 text-muted-foreground space-y-4">
-                    <div class="spinner" style="border-top-color: #a855f7;"></div>
-                    <p>Fetching scraper status...</p>
-                </div>
+            <div class="data-table-wrapper rounded-md bg-black/50 border border-white/5 p-4" style="height: 300px; overflow-y: auto;" id="scraperLogsScroll">
+                <pre id="scraperLogsContainer" class="text-[11px] font-mono leading-relaxed" style="color: #a855f7; white-space: pre-wrap; word-break: break-all;">
+Fetching scraper status...
+                </pre>
             </div>
         </div>
     </div>
