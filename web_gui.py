@@ -595,18 +595,7 @@ def stop_scraper():
         logger.exception(f"API Error in /api/scraper/stop: {e}")
         return jsonify({"error": str(e)}), 500
 
-@app.route('/api/scraper/status', methods=['GET'])
-def get_scraper_status():
-    """Get scraper running state and logs"""
-    global scraper_process, scraper_logs
-    try:
-        is_running = scraper_process is not None and scraper_process.poll() is None
-        return jsonify({
-            "running": is_running,
-            "logs": list(scraper_logs)
-        })
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+
 
 
 
@@ -1301,21 +1290,33 @@ def export_full_report():
 
 @app.route('/api/scraper/status', methods=['GET'])
 def get_scraper_status():
-    scraper_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "polymarket-profitablewallets-scrapper", "output", "profitable_wallets.json")
-    if not os.path.exists(scraper_path):
-        return jsonify({"status": "not_started", "wallets": []})
+    global scraper_process, scraper_logs
     
-    try:
-        with open(scraper_path, 'r') as f:
-            data = json.load(f)
-            return jsonify({
-                "status": "running",
-                "scrapedAt": data.get("scrapedAt", ""),
-                "walletsCount": data.get("walletsCount", 0),
-                "wallets": data.get("wallets", [])
-            })
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e), "wallets": []})
+    is_running = scraper_process is not None and scraper_process.poll() is None
+    
+    response_data = {
+        "running": is_running,
+        "logs": list(scraper_logs),
+        "status": "not_started",
+        "wallets": [],
+        "scrapedAt": "",
+        "walletsCount": 0
+    }
+    
+    scraper_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), "polymarket-profitablewallets-scrapper", "output", "profitable_wallets.json")
+    if os.path.exists(scraper_path):
+        try:
+            with open(scraper_path, 'r') as f:
+                data = json.load(f)
+                response_data["status"] = "running"
+                response_data["scrapedAt"] = data.get("scrapedAt", "")
+                response_data["walletsCount"] = data.get("walletsCount", 0)
+                response_data["wallets"] = data.get("wallets", [])
+        except Exception as e:
+            response_data["status"] = "error"
+            response_data["message"] = str(e)
+            
+    return jsonify(response_data)
 
 if __name__ == '__main__':
     # Ensure database exists

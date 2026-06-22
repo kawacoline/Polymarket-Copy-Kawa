@@ -63,7 +63,7 @@ def setup_env():
         subprocess.run([sys.executable, "-m", "venv", VENV_DIR], cwd=REPO_DIR)
     
     log("Installing/Updating dependencies...")
-    run_cmd([PYTHON_EXE, "-m", "pip", "install", "-r", "requirements.txt", "--upgrade", "-q"])
+    run_cmd([PYTHON_EXE, "-m", "pip", "install", "-r", "requirements.txt", "--upgrade"])
 
 def main():
     print("="*60)
@@ -126,7 +126,7 @@ def main():
 
                 
                 log("Updating dependencies...")
-                run_cmd([PYTHON_EXE, "-m", "pip", "install", "-r", "requirements.txt", "--upgrade", "-q"])
+                run_cmd([PYTHON_EXE, "-m", "pip", "install", "-r", "requirements.txt", "--upgrade"])
                 
                 stop_bot()
                 start_bot()
