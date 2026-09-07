@@ -1,4 +1,4 @@
-# 🤖 Polymarket Copy Trader — Multi-Account Automated Execution Engine & Web Dashboard
+# 🤖 Polymarket CopyTrader — Multi-Account Automated Execution Engine & Web Dashboard
 
 [![Python Version](https://img.shields.io/badge/Python-3.10%2B-blue.svg?logo=python)](https://python.org)
 [![Web Interface](https://img.shields.io/badge/Web%20GUI-Flask%20%2F%20HTML5-red.svg)](https://flask.palletsprojects.com/)
@@ -68,8 +68,8 @@ The platform features an autonomous multi-threaded execution engine, a comprehen
 
 ### 2. Repository Setup
 ```bash
-git clone https://github.com/kawacoline/Polymarket-Copy-Kawa.git
-cd Polymarket-Copy-Kawa
+git clone https://github.com/kawacoline/Polymarket-CopyTrader.git
+cd Polymarket-CopyTrader
 setup.bat
 ```
 
