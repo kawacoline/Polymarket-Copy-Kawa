@@ -61,9 +61,8 @@ def setup_env():
     if not os.path.exists(VENV_DIR):
         log("Creating virtual environment...")
         subprocess.run([sys.executable, "-m", "venv", VENV_DIR], cwd=REPO_DIR)
-    
-    log("Installing/Updating dependencies...")
-    run_cmd([PYTHON_EXE, "-m", "pip", "install", "-r", "requirements.txt", "--upgrade"])
+        log("Installing initial dependencies...")
+        run_cmd([PYTHON_EXE, "-m", "pip", "install", "-r", "requirements.txt", "--upgrade"])
 
 def main():
     print("="*60)
