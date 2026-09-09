@@ -135,11 +135,11 @@ Open your browser at **`http://localhost:5000`**.
 
 ## 👨‍💻 Author
 
-**Hazael**  
+**Kawacoline**  
 *Full Stack Software Engineer & Web3 Automation Specialist*  
 - **GitHub**: [@kawacoline](https://github.com/kawacoline)  
 - **Email**: kawacoline@gmail.com  
-- **Portfolio**: [hazael.dev](https://github.com/kawacoline)
+- **Portfolio**: [kawacoline](https://github.com/kawacoline)
 
 ---
 
